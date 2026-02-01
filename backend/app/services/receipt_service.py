@@ -5,6 +5,7 @@ from typing import Sequence
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
+from app.db.repositories.reaction import ReactionRepository
 from app.db.repositories.receipt import EvidenceRepository, ReceiptRepository
 from app.db.repositories.topic import TopicRepository
 from app.models.db.receipt import EvidenceItem, Receipt
@@ -56,6 +57,7 @@ class ReceiptService:
         self.repo = ReceiptRepository(db)
         self.evidence_repo = EvidenceRepository(db)
         self.topic_repo = TopicRepository(db)
+        self.reaction_repo = ReactionRepository(db)
 
     def create_receipt(
         self,
@@ -274,7 +276,7 @@ class ReceiptService:
                     claim_text=fork.claim_text,
                     author=self._author_summary(fork.author),
                     evidence=[],  # Simplified for chain view
-                    reactions=ReactionCounts(),  # TODO: compute
+                    reactions=self._get_reaction_counts(fork.id),
                     forks=child_nodes,
                     created_at=fork.created_at,
                 )
@@ -317,11 +319,7 @@ class ReceiptService:
                 )
                 for e in receipt.evidence_items
             ],
-            reactions=ReactionCounts(
-                support=0,  # TODO: compute from actual reactions
-                dispute=0,
-                bookmark=0,
-            ),
+            reactions=self._get_reaction_counts(receipt.id),
             fork_count=receipt.fork_count,
             created_at=receipt.created_at,
             updated_at=receipt.updated_at,
@@ -334,4 +332,13 @@ class ReceiptService:
             handle=author.handle,
             display_name=author.display_name,
             avatar_url=author.avatar_url,
+        )
+
+    def _get_reaction_counts(self, receipt_id: str) -> ReactionCounts:
+        """Get reaction counts for a receipt."""
+        counts = self.reaction_repo.get_reaction_counts(receipt_id)
+        return ReactionCounts(
+            support=counts.get(ReactionType.SUPPORT, 0),
+            dispute=counts.get(ReactionType.DISPUTE, 0),
+            bookmark=counts.get(ReactionType.BOOKMARK, 0),
         )

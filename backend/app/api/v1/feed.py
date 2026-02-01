@@ -88,7 +88,7 @@ def get_trending(
                     author=receipt_service._author_summary(receipt.author),
                     claim_text=receipt.claim_text,
                     evidence_count=len(receipt.evidence_items) if receipt.evidence_items else 0,
-                    reactions=ReactionCounts(),  # TODO: compute
+                    reactions=receipt_service._get_reaction_counts(receipt.id),
                     fork_count=receipt.fork_count,
                     created_at=receipt.created_at,
                 ),
