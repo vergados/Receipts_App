@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Receipt, Search, Plus, User, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,20 @@ import { cn } from '@/lib/utils';
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+      setMobileMenuOpen(false);
+    }
+  };
+
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/trending', label: 'Trending' },
@@ -46,16 +57,18 @@ export function Header() {
         </nav>
         
         {/* Search - Desktop */}
-        <div className="hidden md:flex items-center mx-4">
+        <form onSubmit={handleSearch} className="hidden md:flex items-center mx-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="search"
               placeholder="Search receipts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="h-9 w-64 rounded-md border border-input bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-        </div>
+        </form>
         
         {/* Actions */}
         <div className="flex items-center space-x-4">
@@ -153,16 +166,18 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            <div className="pt-4 border-t">
+            <form onSubmit={handleSearch} className="pt-4 border-t">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="search"
                   placeholder="Search receipts..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-            </div>
+            </form>
           </nav>
         </div>
       )}

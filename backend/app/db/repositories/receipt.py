@@ -190,6 +190,40 @@ class ReceiptRepository(BaseRepository[Receipt]):
 
         return all_forks
 
+    def search(
+        self,
+        query: str,
+        *,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> Sequence[Receipt]:
+        """Search receipts by claim text or author."""
+        search_term = f"%{query}%"
+
+        from app.models.db.user import User
+
+        result = self.db.execute(
+            select(Receipt)
+            .options(
+                joinedload(Receipt.author),
+                selectinload(Receipt.evidence_items),
+            )
+            .join(User, Receipt.author_id == User.id)
+            .where(
+                Receipt.visibility == Visibility.PUBLIC,
+                or_(
+                    Receipt.claim_text.ilike(search_term),
+                    Receipt.implication_text.ilike(search_term),
+                    User.handle.ilike(search_term),
+                    User.display_name.ilike(search_term),
+                ),
+            )
+            .order_by(Receipt.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        return result.scalars().unique().all()
+
     def increment_fork_count(self, receipt_id: str) -> None:
         """Increment the fork count of a receipt."""
         receipt = self.get_by_id(receipt_id)
