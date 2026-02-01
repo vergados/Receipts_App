@@ -1,0 +1,40 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api-client';
+import { ReceiptFeed } from '@/components/receipts';
+import { Avatar, Card, Spinner } from '@/components/ui';
+import type { UserPublic } from '@/lib/types';
+import { formatDate } from '@/lib/utils';
+
+export default function ProfilePage({ params }: { params: { handle: string } }) {
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['user', params.handle],
+    queryFn: async () => {
+      const res = await apiClient.get<UserPublic>(`/users/${params.handle}`);
+      return res.data;
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center py-12"><Spinner /></div>;
+  if (!user) return <div className="text-center py-12">User not found</div>;
+
+  return (
+    <div className="container mx-auto px-4 py-6 max-w-2xl">
+      <Card className="p-6 mb-6">
+        <div className="flex items-center space-x-4">
+          <Avatar src={user.avatar_url} fallback={user.display_name} size="xl" />
+          <div>
+            <h1 className="text-xl font-bold">{user.display_name}</h1>
+            <p className="text-muted-foreground">@{user.handle}</p>
+            {user.bio && <p className="mt-2">{user.bio}</p>}
+            <p className="text-sm text-muted-foreground mt-2">
+              {user.receipt_count} receipts · Joined {formatDate(user.created_at)}
+            </p>
+          </div>
+        </div>
+      </Card>
+      <ReceiptFeed endpoint={`/users/${params.handle}/receipts`} queryKey={['user-receipts', params.handle]} />
+    </div>
+  );
+}

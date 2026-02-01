@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build outputs
+.next/
+out/
+dist/
+target/
+*.egg-info/
+
+# Environment files
+.env
+.env.local
+.env*.local
+
+# Database
+*.db
+*.sqlite
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Tauri
+frontend/src-tauri/target/
+frontend/src-tauri/gen/apple/Pods/
+frontend/src-tauri/gen/apple/build/
+frontend/src-tauri/gen/apple/*.xcworkspace
+frontend/src-tauri/gen/apple/DerivedData/
+
+# Uploads
+uploads/
