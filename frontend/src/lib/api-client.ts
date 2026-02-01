@@ -1,6 +1,29 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Detect if running in Tauri
+const isTauri = () => {
+  if (typeof window === 'undefined') return false;
+  return !!(window as any).__TAURI__ || window.location.protocol === 'tauri:';
+};
+
+// Get API base URL - prioritize Tauri detection for mobile
+const getApiBaseUrl = () => {
+  // IMPORTANT: Check Tauri FIRST before env var
+  // On mobile devices, we need the network IP, not localhost
+  if (typeof window !== 'undefined' && isTauri()) {
+    // For Tauri mobile, we need to use the dev machine's IP
+    return 'http://192.168.1.20:8000';
+  }
+
+  // For web/browser, use env var or default to localhost
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Create axios instance
 export const apiClient: AxiosInstance = axios.create({
