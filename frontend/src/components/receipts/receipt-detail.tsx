@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { 
+import {
   ThumbsUp, ThumbsDown, Bookmark, GitFork, Share2, Flag,
   Image, Link as LinkIcon, Video, Quote, ExternalLink,
   ChevronDown, ChevronUp
 } from 'lucide-react';
 import type { Receipt, ReceiptChain, EvidenceItem, EvidenceType } from '@/lib/types';
-import { formatRelativeTime, formatDateTime, formatNumber } from '@/lib/utils';
+import { formatRelativeTime, formatDateTime, formatNumber, cn } from '@/lib/utils';
+import { useReaction } from '@/lib/hooks/use-reaction';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
@@ -103,9 +104,14 @@ function EvidenceCard({ evidence }: { evidence: EvidenceItem }) {
 
 export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
   const [showAllEvidence, setShowAllEvidence] = useState(false);
-  
-  const visibleEvidence = showAllEvidence 
-    ? receipt.evidence 
+
+  const { reactions, userReactions, toggleReaction } = useReaction({
+    receiptId: receipt.id,
+    initialReactions: receipt.reactions,
+  });
+
+  const visibleEvidence = showAllEvidence
+    ? receipt.evidence
     : receipt.evidence.slice(0, 3);
   
   return (
@@ -215,20 +221,41 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
         {/* Actions */}
         <div className="flex items-center justify-between pt-4 border-t">
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm">
-              <ThumbsUp className="h-4 w-4 mr-2" />
-              {formatNumber(receipt.reactions.support)}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleReaction('support')}
+              className={cn(
+                userReactions.has('support') && "bg-green-600 hover:bg-green-700 text-white border-green-600"
+              )}
+            >
+              <ThumbsUp className={cn("h-4 w-4 mr-2", userReactions.has('support') && "fill-current")} />
+              {formatNumber(reactions.support)}
             </Button>
-            <Button variant="outline" size="sm">
-              <ThumbsDown className="h-4 w-4 mr-2" />
-              {formatNumber(receipt.reactions.dispute)}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleReaction('dispute')}
+              className={cn(
+                userReactions.has('dispute') && "bg-red-600 hover:bg-red-700 text-white border-red-600"
+              )}
+            >
+              <ThumbsDown className={cn("h-4 w-4 mr-2", userReactions.has('dispute') && "fill-current")} />
+              {formatNumber(reactions.dispute)}
             </Button>
-            <Button variant="outline" size="sm">
-              <Bookmark className="h-4 w-4 mr-2" />
-              {formatNumber(receipt.reactions.bookmark)}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleReaction('bookmark')}
+              className={cn(
+                userReactions.has('bookmark') && "bg-primary hover:bg-primary/90 text-primary-foreground border-primary"
+              )}
+            >
+              <Bookmark className={cn("h-4 w-4 mr-2", userReactions.has('bookmark') && "fill-current")} />
+              {formatNumber(reactions.bookmark)}
             </Button>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Link href={`/create?fork=${receipt.id}`}>
               <Button variant="secondary" size="sm">

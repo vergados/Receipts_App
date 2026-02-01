@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { ThumbsUp, ThumbsDown, Bookmark, GitFork, Image, Link as LinkIcon, Video, Quote } from 'lucide-react';
 import type { Receipt, EvidenceType } from '@/lib/types';
 import { formatRelativeTime, truncate, formatNumber } from '@/lib/utils';
+import { useReaction } from '@/lib/hooks/use-reaction';
 import { Card } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface ReceiptCardProps {
   receipt: Receipt;
@@ -24,7 +26,18 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
   const claimText = showFullClaim
     ? receipt.claim_text
     : truncate(receipt.claim_text, 280);
-  
+
+  const { reactions, userReactions, toggleReaction } = useReaction({
+    receiptId: receipt.id,
+    initialReactions: receipt.reactions,
+  });
+
+  const handleReaction = (e: React.MouseEvent, type: 'support' | 'dispute' | 'bookmark') => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleReaction(type);
+  };
+
   return (
     <Link href={`/receipt/${receipt.id}`}>
       <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
@@ -48,7 +61,7 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
               {formatRelativeTime(receipt.created_at)}
             </span>
           </div>
-          
+
           {receipt.parent_receipt_id && (
             <Badge variant="secondary" className="shrink-0">
               <GitFork className="h-3 w-3 mr-1" />
@@ -56,12 +69,12 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
             </Badge>
           )}
         </div>
-        
+
         {/* Claim */}
         <div className="mb-3">
           <p className="text-sm leading-relaxed">{claimText}</p>
         </div>
-        
+
         {/* Implication (if present) */}
         {receipt.implication_text && (
           <div className="mb-3 pl-3 border-l-2 border-primary/30">
@@ -70,7 +83,7 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
             </p>
           </div>
         )}
-        
+
         {/* Evidence Preview */}
         <div className="flex flex-wrap gap-2 mb-3">
           {receipt.evidence.slice(0, 4).map((item) => (
@@ -88,25 +101,53 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
             </div>
           )}
         </div>
-        
+
         {/* Footer: Reactions */}
         <div className="flex items-center justify-between pt-3 border-t">
           <div className="flex items-center space-x-4">
-            <button className="flex items-center space-x-1 text-muted-foreground hover:text-green-600 transition-colors">
-              <ThumbsUp className="h-4 w-4" />
-              <span className="text-xs">{formatNumber(receipt.reactions.support)}</span>
+            <button
+              onClick={(e) => handleReaction(e, 'support')}
+              className={cn(
+                "flex items-center space-x-1 transition-colors",
+                userReactions.has('support')
+                  ? "text-green-600"
+                  : "text-muted-foreground hover:text-green-600"
+              )}
+            >
+              <ThumbsUp className={cn("h-4 w-4", userReactions.has('support') && "fill-current")} />
+              <span className="text-xs">{formatNumber(reactions.support)}</span>
             </button>
-            <button className="flex items-center space-x-1 text-muted-foreground hover:text-red-600 transition-colors">
-              <ThumbsDown className="h-4 w-4" />
-              <span className="text-xs">{formatNumber(receipt.reactions.dispute)}</span>
+            <button
+              onClick={(e) => handleReaction(e, 'dispute')}
+              className={cn(
+                "flex items-center space-x-1 transition-colors",
+                userReactions.has('dispute')
+                  ? "text-red-600"
+                  : "text-muted-foreground hover:text-red-600"
+              )}
+            >
+              <ThumbsDown className={cn("h-4 w-4", userReactions.has('dispute') && "fill-current")} />
+              <span className="text-xs">{formatNumber(reactions.dispute)}</span>
             </button>
-            <button className="flex items-center space-x-1 text-muted-foreground hover:text-primary transition-colors">
+            <Link
+              href={`/create?fork=${receipt.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center space-x-1 text-muted-foreground hover:text-primary transition-colors"
+            >
               <GitFork className="h-4 w-4" />
               <span className="text-xs">{formatNumber(receipt.fork_count)}</span>
-            </button>
+            </Link>
           </div>
-          <button className="text-muted-foreground hover:text-primary transition-colors">
-            <Bookmark className="h-4 w-4" />
+          <button
+            onClick={(e) => handleReaction(e, 'bookmark')}
+            className={cn(
+              "transition-colors",
+              userReactions.has('bookmark')
+                ? "text-primary"
+                : "text-muted-foreground hover:text-primary"
+            )}
+          >
+            <Bookmark className={cn("h-4 w-4", userReactions.has('bookmark') && "fill-current")} />
           </button>
         </div>
       </Card>
