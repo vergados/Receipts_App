@@ -13,10 +13,15 @@ const isRemoteAccess = () => {
   return hostname !== 'localhost' && hostname !== '127.0.0.1';
 };
 
-// Get API base URL - prioritize Tauri and remote access detection
-const getApiBaseUrl = () => {
+// Get API base URL - evaluated dynamically on each request
+const getApiBaseUrl = (): string => {
+  // Server-side: use localhost (will be overridden on client)
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  }
+
   // For Tauri or remote browser access, use the network IP
-  if (typeof window !== 'undefined' && (isTauri() || isRemoteAccess())) {
+  if (isTauri() || isRemoteAccess()) {
     return 'http://192.168.1.20:8000';
   }
 
@@ -28,16 +33,24 @@ const getApiBaseUrl = () => {
   return 'http://localhost:8000';
 };
 
-const API_BASE_URL = getApiBaseUrl();
-
-// Create axios instance
+// Create axios instance with dynamic baseURL
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: `${API_BASE_URL}/api/v1`,
   headers: {
     'Content-Type': 'application/json',
   },
   timeout: 30000,
 });
+
+// Set baseURL dynamically on each request to handle SSR vs client
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // Set baseURL dynamically based on environment
+    const baseUrl = getApiBaseUrl();
+    config.baseURL = `${baseUrl}/api/v1`;
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'receipts_access_token';
@@ -74,6 +87,10 @@ apiClient.interceptors.request.use(
     const token = tokenManager.getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Ensure baseURL is set (in case first interceptor didn't run)
+    if (!config.baseURL) {
+      config.baseURL = `${getApiBaseUrl()}/api/v1`;
     }
     return config;
   },
@@ -136,7 +153,7 @@ apiClient.interceptors.response.use(
 
       try {
         const response = await axios.post(
-          `${API_BASE_URL}/api/v1/auth/refresh`,
+          `${getApiBaseUrl()}/api/v1/auth/refresh`,
           { refresh_token: refreshToken }
         );
 
