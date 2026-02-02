@@ -1,6 +1,8 @@
 """User repository for database operations - SYNC version."""
 
-from sqlalchemy import func, select
+from typing import Sequence
+
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.repositories.base import BaseRepository
@@ -12,6 +14,30 @@ class UserRepository(BaseRepository[User]):
 
     def __init__(self, db: Session) -> None:
         super().__init__(db, User)
+
+    def search(
+        self,
+        query: str,
+        *,
+        skip: int = 0,
+        limit: int = 50,
+    ) -> Sequence[User]:
+        """Search users by handle, display name, or email."""
+        search_term = f"%{query}%"
+        result = self.db.execute(
+            select(User)
+            .where(
+                or_(
+                    User.handle.ilike(search_term),
+                    User.display_name.ilike(search_term),
+                    User.email.ilike(search_term),
+                )
+            )
+            .order_by(User.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        return result.scalars().all()
 
     def get_by_email(self, email: str) -> User | None:
         """Get user by email address."""

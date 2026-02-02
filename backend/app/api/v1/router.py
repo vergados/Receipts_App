@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.evidence import router as evidence_router
 from app.api.v1.exports import router as exports_router
@@ -30,3 +31,4 @@ api_router.include_router(moderation_router)
 api_router.include_router(exports_router)
 api_router.include_router(uploads_router)
 api_router.include_router(notifications_router)
+api_router.include_router(admin_router)

@@ -279,3 +279,98 @@ export interface NotificationListResponse {
   total: number;
   unread_count: number;
 }
+
+// Admin types
+export type ModerationActionType = 'warning' | 'content_removal' | 'user_ban' | 'user_suspension';
+
+export interface AdminStats {
+  total_users: number;
+  total_receipts: number;
+  pending_reports: number;
+  total_reports: number;
+  actions_today: number;
+  active_users_today: number;
+}
+
+export interface ReporterSummary {
+  id: string;
+  handle: string;
+  display_name: string;
+}
+
+export interface TargetUserSummary {
+  id: string;
+  handle: string;
+  display_name: string;
+  avatar_url: string | null;
+  is_active: boolean;
+}
+
+export interface TargetReceiptSummary {
+  id: string;
+  claim_text: string;
+  author_handle: string;
+}
+
+export interface AdminReport {
+  id: string;
+  target_type: TargetType;
+  target_id: string;
+  reason: ReportReason;
+  status: ReportStatus;
+  details: string | null;
+  reporter: ReporterSummary;
+  target_user: TargetUserSummary | null;
+  target_receipt: TargetReceiptSummary | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+export interface AdminReportList {
+  reports: AdminReport[];
+  total: number;
+  pending_count: number;
+}
+
+export interface ModeratorSummary {
+  id: string;
+  handle: string;
+  display_name: string;
+}
+
+export interface ModerationAction {
+  id: string;
+  action_type: ModerationActionType;
+  target_type: TargetType;
+  target_id: string;
+  reason: string;
+  moderator: ModeratorSummary;
+  report_id: string | null;
+  created_at: string;
+}
+
+export interface ModerationActionList {
+  actions: ModerationAction[];
+  total: number;
+}
+
+export interface AdminUser {
+  id: string;
+  handle: string;
+  display_name: string;
+  email: string;
+  avatar_url: string | null;
+  bio: string | null;
+  is_active: boolean;
+  is_verified: boolean;
+  is_moderator: boolean;
+  receipt_count: number;
+  report_count: number;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+export interface AdminUserList {
+  users: AdminUser[];
+  total: number;
+}

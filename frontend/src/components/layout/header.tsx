@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Receipt, Search, Plus, User, LogOut, Menu, X } from 'lucide-react';
+import { Receipt, Search, Plus, User, LogOut, Menu, X, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
@@ -114,6 +114,15 @@ export function Header() {
                       <User className="h-4 w-4 mr-2" />
                       Profile
                     </Link>
+                    {user?.is_moderator && (
+                      <Link
+                        href="/admin"
+                        className="flex items-center px-2 py-2 text-sm hover:bg-accent"
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin
+                      </Link>
+                    )}
                     <button
                       onClick={logout}
                       className="flex w-full items-center px-2 py-2 text-sm hover:bg-accent text-destructive"
