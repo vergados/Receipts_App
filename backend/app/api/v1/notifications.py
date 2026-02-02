@@ -1,11 +1,9 @@
 """Notification API endpoints."""
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Query
 
-from app.api.deps import get_current_user, get_db
+from app.core.dependencies import CurrentUser, DbSession
 from app.db.repositories import NotificationRepository
-from app.models.db.user import User
 from app.models.schemas.notification import (
     NotificationList,
     NotificationMarkRead,
@@ -47,11 +45,11 @@ def _notification_to_response(notification) -> NotificationResponse:
 
 @router.get("", response_model=NotificationList)
 def get_notifications(
+    db: DbSession,
+    current_user: CurrentUser,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     unread_only: bool = Query(False),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Get notifications for the current user."""
     repo = NotificationRepository(db)
@@ -75,8 +73,8 @@ def get_notifications(
 
 @router.get("/unread-count")
 def get_unread_count(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: DbSession,
+    current_user: CurrentUser,
 ):
     """Get the count of unread notifications."""
     repo = NotificationRepository(db)
@@ -87,8 +85,8 @@ def get_unread_count(
 @router.post("/mark-read")
 def mark_notifications_read(
     data: NotificationMarkRead,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: DbSession,
+    current_user: CurrentUser,
 ):
     """Mark notifications as read."""
     repo = NotificationRepository(db)
@@ -98,8 +96,8 @@ def mark_notifications_read(
 
 @router.delete("")
 def delete_all_notifications(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: DbSession,
+    current_user: CurrentUser,
 ):
     """Delete all notifications for the current user."""
     repo = NotificationRepository(db)

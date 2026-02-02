@@ -3,7 +3,6 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db
 from app.core.dependencies import CurrentUser, DbSession
 from app.db.repositories.receipt import ReceiptRepository
 from app.db.repositories.report import ReportRepository
