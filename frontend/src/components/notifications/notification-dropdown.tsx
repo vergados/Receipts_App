@@ -164,9 +164,24 @@ export function NotificationDropdown() {
 
   return (
     <div className="relative" ref={dropdownRef}>
+      {/* Mobile: Link to notifications page */}
+      <Link
+        href="/notifications"
+        className="relative p-2 rounded-full hover:bg-muted transition-colors sm:hidden block"
+        aria-label="Notifications"
+      >
+        <Bell className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </Link>
+
+      {/* Desktop: Dropdown */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-full hover:bg-muted transition-colors"
+        className="relative p-2 rounded-full hover:bg-muted transition-colors hidden sm:block"
         aria-label="Notifications"
       >
         <Bell className="h-5 w-5" />
@@ -178,7 +193,7 @@ export function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 sm:right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-md border bg-background shadow-lg -mr-2 sm:mr-0 z-50">
+        <div className="absolute right-0 top-full mt-2 w-80 rounded-md border bg-background shadow-lg z-50 hidden sm:block">
           <div className="flex items-center justify-between p-3 border-b">
             <h3 className="font-semibold">Notifications</h3>
             {unreadCount > 0 && (
