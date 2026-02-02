@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
-import { Card, Spinner } from '@/components/ui';
+import { Card, Spinner, Button } from '@/components/ui';
 import type { TopicListResponse } from '@/lib/types';
 
 export default function TopicsPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['topics'],
     queryFn: async () => {
       const res = await apiClient.get<TopicListResponse>('/topics');
@@ -16,6 +16,16 @@ export default function TopicsPage() {
   });
 
   if (isLoading) return <div className="flex justify-center py-12"><Spinner /></div>;
+
+  if (isError) {
+    console.error('Topics error:', error);
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground mb-4">Failed to load topics</p>
+        <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-2xl">

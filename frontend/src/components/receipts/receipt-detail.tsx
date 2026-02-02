@@ -117,38 +117,56 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
 
   const handleShare = async () => {
     const url = `${window.location.origin}/receipt/${receipt.id}`;
-    const shareData = {
-      title: 'Receipt',
-      text: receipt.claim_text.slice(0, 100) + (receipt.claim_text.length > 100 ? '...' : ''),
-      url,
-    };
 
-    // Try native share API first (mobile)
-    if (navigator.share && navigator.canShare?.(shareData)) {
+    // Try native share API first (works on mobile with HTTPS)
+    if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share(shareData);
+        await navigator.share({
+          title: 'Receipt',
+          text: receipt.claim_text.slice(0, 100) + (receipt.claim_text.length > 100 ? '...' : ''),
+          url,
+        });
         return;
-      } catch (err) {
-        // User cancelled or error, fall back to clipboard
+      } catch (err: any) {
+        // Only fall through if it's not a user abort
+        if (err?.name === 'AbortError') return;
       }
     }
 
-    // Fall back to clipboard
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = url;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    // Try clipboard API
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      } catch (err) {
+        // Clipboard failed, try fallback
+      }
     }
+
+    // Fallback: create temporary input and copy
+    try {
+      const input = document.createElement('input');
+      input.value = url;
+      input.style.position = 'fixed';
+      input.style.opacity = '0';
+      document.body.appendChild(input);
+      input.focus();
+      input.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(input);
+      if (success) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      }
+    } catch (err) {
+      // Fallback failed
+    }
+
+    // Last resort: show prompt with URL
+    window.prompt('Copy this link:', url);
   };
   
   return (
@@ -300,9 +318,12 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
                 Counter
               </Button>
             </Link>
-            <Button variant="ghost" size="sm" onClick={handleShare}>
+            <Button variant="ghost" size="sm" onClick={handleShare} className="relative">
               {copied ? (
-                <Check className="h-4 w-4 text-green-600" />
+                <>
+                  <Check className="h-4 w-4 text-green-600" />
+                  <span className="ml-1 text-xs text-green-600">Copied!</span>
+                </>
               ) : (
                 <Share2 className="h-4 w-4" />
               )}

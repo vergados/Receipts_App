@@ -17,6 +17,7 @@ export function Header() {
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,51 +91,58 @@ export function Header() {
 
               <NotificationDropdown />
 
-              <div className="relative group">
-                <button className="flex items-center space-x-2">
+              <div className="relative">
+                <button
+                  className="flex items-center space-x-2"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                >
                   <Avatar
                     src={user?.avatar_url}
                     fallback={user?.display_name}
                     size="sm"
                   />
                 </button>
-                
+
                 {/* Dropdown */}
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-md border bg-background shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                  <div className="p-2">
-                    <div className="px-2 py-1.5 text-sm font-medium">
-                      {user?.display_name}
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-md border bg-background shadow-lg z-50">
+                    <div className="p-2">
+                      <div className="px-2 py-1.5 text-sm font-medium">
+                        {user?.display_name}
+                      </div>
+                      <div className="px-2 py-1 text-xs text-muted-foreground">
+                        @{user?.handle}
+                      </div>
                     </div>
-                    <div className="px-2 py-1 text-xs text-muted-foreground">
-                      @{user?.handle}
-                    </div>
-                  </div>
-                  <div className="border-t">
-                    <Link
-                      href={`/u/${user?.handle}`}
-                      className="flex items-center px-2 py-2 text-sm hover:bg-accent"
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      Profile
-                    </Link>
-                    {user?.is_moderator && (
+                    <div className="border-t">
                       <Link
-                        href="/admin"
+                        href={`/u/${user?.handle}`}
                         className="flex items-center px-2 py-2 text-sm hover:bg-accent"
+                        onClick={() => setUserMenuOpen(false)}
                       >
-                        <Shield className="h-4 w-4 mr-2" />
-                        Admin
+                        <User className="h-4 w-4 mr-2" />
+                        Profile
                       </Link>
-                    )}
-                    <button
-                      onClick={logout}
-                      className="flex w-full items-center px-2 py-2 text-sm hover:bg-accent text-destructive"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </button>
+                      {user?.is_moderator && (
+                        <Link
+                          href="/admin"
+                          className="flex items-center px-2 py-2 text-sm hover:bg-accent"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <Shield className="h-4 w-4 mr-2" />
+                          Admin
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => { logout(); setUserMenuOpen(false); }}
+                        className="flex w-full items-center px-2 py-2 text-sm hover:bg-accent text-destructive"
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Logout
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </>
           ) : (

@@ -20,8 +20,13 @@ async function fetchFeed(endpoint: string, cursor?: string): Promise<FeedRespons
   if (cursor) {
     params.set('cursor', cursor);
   }
-  const response = await apiClient.get(`${endpoint}?${params.toString()}`);
-  return response.data;
+  try {
+    const response = await apiClient.get(`${endpoint}?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error('Feed fetch error:', error);
+    throw error;
+  }
 }
 
 export function ReceiptFeed({ 
@@ -67,10 +72,15 @@ export function ReceiptFeed({
   }
   
   if (isError) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Feed error:', error);
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground mb-4">
+        <p className="text-muted-foreground mb-2">
           Failed to load receipts
+        </p>
+        <p className="text-xs text-muted-foreground mb-4">
+          {errorMessage}
         </p>
         <Button variant="outline" onClick={() => refetch()}>
           Try Again

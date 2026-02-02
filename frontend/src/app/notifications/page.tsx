@@ -129,7 +129,7 @@ export default function NotificationsPage() {
     }
   }, [isAuthenticated, router]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['notifications', 'all'],
     queryFn: async () => {
       const res = await apiClient.get<NotificationListResponse>('/notifications?limit=50');
@@ -182,6 +182,15 @@ export default function NotificationsPage() {
         <div className="flex justify-center">
           <Spinner />
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="container mx-auto px-4 py-12 max-w-2xl text-center">
+        <p className="text-muted-foreground mb-4">Failed to load notifications</p>
+        <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
       </div>
     );
   }

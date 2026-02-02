@@ -30,10 +30,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# In development, allow all origins for easier testing from different devices
+cors_origins = ["*"] if settings.environment == "development" else settings.cors_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=settings.cors_allow_credentials,
+    allow_origins=cors_origins,
+    allow_credentials=settings.cors_allow_credentials if settings.environment != "development" else False,
     allow_methods=settings.cors_allow_methods,
     allow_headers=settings.cors_allow_headers,
 )

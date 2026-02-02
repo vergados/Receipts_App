@@ -1,60 +1,32 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
+// Token storage keys
+const ACCESS_TOKEN_KEY = 'receipts_access_token';
+const REFRESH_TOKEN_KEY = 'receipts_refresh_token';
+
 // Detect if running in Tauri
 const isTauri = () => {
   if (typeof window === 'undefined') return false;
   return !!(window as any).__TAURI__ || window.location.protocol === 'tauri:';
 };
 
-// Detect if accessed from a non-localhost origin (e.g., phone browser)
-const isRemoteAccess = () => {
-  if (typeof window === 'undefined') return false;
-  const hostname = window.location.hostname;
-  return hostname !== 'localhost' && hostname !== '127.0.0.1';
-};
-
-// Get API base URL - evaluated dynamically on each request
+// Get API base URL
 const getApiBaseUrl = (): string => {
-  // Server-side: use localhost (will be overridden on client)
+  // Server-side rendering: use localhost directly
   if (typeof window === 'undefined') {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   }
 
-  // For Tauri or remote browser access, use the network IP
-  if (isTauri() || isRemoteAccess()) {
-    return 'http://192.168.1.20:8000';
+  // For Tauri app, use configured URL or network IP
+  if (isTauri()) {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.20:8000';
   }
 
-  // For local web/browser, use env var or default to localhost
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-
-  return 'http://localhost:8000';
+  // For browser: use empty string for relative URLs
+  // Requests go to /api/v1/... which Next.js API routes proxy to backend
+  // This avoids cross-port requests that some browsers block
+  return '';
 };
-
-// Create axios instance with dynamic baseURL
-export const apiClient: AxiosInstance = axios.create({
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 30000,
-});
-
-// Set baseURL dynamically on each request to handle SSR vs client
-apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Set baseURL dynamically based on environment
-    const baseUrl = getApiBaseUrl();
-    config.baseURL = `${baseUrl}/api/v1`;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Token storage keys
-const ACCESS_TOKEN_KEY = 'receipts_access_token';
-const REFRESH_TOKEN_KEY = 'receipts_refresh_token';
 
 // Token management
 export const tokenManager = {
@@ -81,17 +53,33 @@ export const tokenManager = {
   },
 };
 
-// Request interceptor - add auth header
+// Create axios instance
+export const apiClient: AxiosInstance = axios.create({
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 30000,
+});
+
+// Single request interceptor - sets baseURL and auth header
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    const baseUrl = getApiBaseUrl();
+
+    // Remove leading slash from URL to ensure it's treated as relative to baseURL
+    if (config.url?.startsWith('/')) {
+      config.url = config.url.slice(1);
+    }
+
+    // Set baseURL
+    config.baseURL = `${baseUrl}/api/v1/`;
+
+    // Add auth header if token exists
     const token = tokenManager.getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Ensure baseURL is set (in case first interceptor didn't run)
-    if (!config.baseURL) {
-      config.baseURL = `${getApiBaseUrl()}/api/v1`;
-    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -152,10 +140,10 @@ apiClient.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post(
-          `${getApiBaseUrl()}/api/v1/auth/refresh`,
-          { refresh_token: refreshToken }
-        );
+        // Use direct axios call for refresh to avoid interceptor loop
+        const baseUrl = getApiBaseUrl();
+        const refreshUrl = baseUrl ? `${baseUrl}/api/v1/auth/refresh` : '/api/v1/auth/refresh';
+        const response = await axios.post(refreshUrl, { refresh_token: refreshToken });
 
         const { access_token } = response.data;
         tokenManager.setTokens(access_token, refreshToken);
