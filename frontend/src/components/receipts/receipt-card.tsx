@@ -27,7 +27,7 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
     ? receipt.claim_text
     : truncate(receipt.claim_text, 280);
 
-  const { reactions, userReactions, toggleReaction } = useReaction({
+  const { reactions, hasReaction, toggleReaction } = useReaction({
     receiptId: receipt.id,
     initialReactions: receipt.reactions,
   });
@@ -109,24 +109,24 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
               onClick={(e) => handleReaction(e, 'support')}
               className={cn(
                 "flex items-center space-x-1 transition-colors",
-                userReactions.has('support')
+                hasReaction('support')
                   ? "text-green-600"
                   : "text-muted-foreground hover:text-green-600"
               )}
             >
-              <ThumbsUp className={cn("h-4 w-4", userReactions.has('support') && "fill-current")} />
+              <ThumbsUp className={cn("h-4 w-4", hasReaction('support') && "fill-current")} />
               <span className="text-xs">{formatNumber(reactions.support)}</span>
             </button>
             <button
               onClick={(e) => handleReaction(e, 'dispute')}
               className={cn(
                 "flex items-center space-x-1 transition-colors",
-                userReactions.has('dispute')
+                hasReaction('dispute')
                   ? "text-red-600"
                   : "text-muted-foreground hover:text-red-600"
               )}
             >
-              <ThumbsDown className={cn("h-4 w-4", userReactions.has('dispute') && "fill-current")} />
+              <ThumbsDown className={cn("h-4 w-4", hasReaction('dispute') && "fill-current")} />
               <span className="text-xs">{formatNumber(reactions.dispute)}</span>
             </button>
             <Link
@@ -142,12 +142,12 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
             onClick={(e) => handleReaction(e, 'bookmark')}
             className={cn(
               "transition-colors",
-              userReactions.has('bookmark')
+              hasReaction('bookmark')
                 ? "text-primary"
                 : "text-muted-foreground hover:text-primary"
             )}
           >
-            <Bookmark className={cn("h-4 w-4", userReactions.has('bookmark') && "fill-current")} />
+            <Bookmark className={cn("h-4 w-4", hasReaction('bookmark') && "fill-current")} />
           </button>
         </div>
       </Card>

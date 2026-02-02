@@ -6,16 +6,21 @@ const isTauri = () => {
   return !!(window as any).__TAURI__ || window.location.protocol === 'tauri:';
 };
 
-// Get API base URL - prioritize Tauri detection for mobile
+// Detect if accessed from a non-localhost origin (e.g., phone browser)
+const isRemoteAccess = () => {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return hostname !== 'localhost' && hostname !== '127.0.0.1';
+};
+
+// Get API base URL - prioritize Tauri and remote access detection
 const getApiBaseUrl = () => {
-  // IMPORTANT: Check Tauri FIRST before env var
-  // On mobile devices, we need the network IP, not localhost
-  if (typeof window !== 'undefined' && isTauri()) {
-    // For Tauri mobile, we need to use the dev machine's IP
+  // For Tauri or remote browser access, use the network IP
+  if (typeof window !== 'undefined' && (isTauri() || isRemoteAccess())) {
     return 'http://192.168.1.20:8000';
   }
 
-  // For web/browser, use env var or default to localhost
+  // For local web/browser, use env var or default to localhost
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }

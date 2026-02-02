@@ -12,9 +12,12 @@ interface UseReactionOptions {
   onError?: (error: Error) => void;
 }
 
+// Track user reactions as a simple object instead of Set for better compatibility
+type UserReactionsMap = Record<ReactionType, boolean>;
+
 interface UseReactionReturn {
   reactions: ReactionCounts;
-  userReactions: Set<ReactionType>;
+  hasReaction: (type: ReactionType) => boolean;
   toggleReaction: (type: ReactionType) => void;
   isLoading: boolean;
 }
@@ -30,8 +33,14 @@ export function useReaction({
   // Track current reaction counts (for optimistic updates)
   const [reactions, setReactions] = useState<ReactionCounts>(initialReactions);
 
-  // Track which reactions the user has made
-  const [userReactions, setUserReactions] = useState<Set<ReactionType>>(new Set());
+  // Track which reactions the user has made (using object instead of Set for iOS compatibility)
+  const [userReactions, setUserReactions] = useState<UserReactionsMap>({
+    support: false,
+    dispute: false,
+    bookmark: false,
+  });
+
+  const hasReaction = useCallback((type: ReactionType) => userReactions[type], [userReactions]);
 
   // Add reaction mutation
   const addMutation = useMutation({
@@ -45,7 +54,7 @@ export function useReaction({
         ...prev,
         [type]: prev[type] + 1,
       }));
-      setUserReactions((prev) => new Set(prev).add(type));
+      setUserReactions((prev) => ({ ...prev, [type]: true }));
     },
     onError: (error, type) => {
       // Rollback on error
@@ -53,11 +62,7 @@ export function useReaction({
         ...prev,
         [type]: Math.max(0, prev[type] - 1),
       }));
-      setUserReactions((prev) => {
-        const next = new Set(prev);
-        next.delete(type);
-        return next;
-      });
+      setUserReactions((prev) => ({ ...prev, [type]: false }));
       onError?.(error as Error);
     },
     onSuccess: () => {
@@ -80,11 +85,7 @@ export function useReaction({
         ...prev,
         [type]: Math.max(0, prev[type] - 1),
       }));
-      setUserReactions((prev) => {
-        const next = new Set(prev);
-        next.delete(type);
-        return next;
-      });
+      setUserReactions((prev) => ({ ...prev, [type]: false }));
     },
     onError: (error, type) => {
       // Rollback on error
@@ -92,7 +93,7 @@ export function useReaction({
         ...prev,
         [type]: prev[type] + 1,
       }));
-      setUserReactions((prev) => new Set(prev).add(type));
+      setUserReactions((prev) => ({ ...prev, [type]: true }));
       onError?.(error as Error);
     },
     onSuccess: () => {
@@ -110,7 +111,7 @@ export function useReaction({
         return;
       }
 
-      if (userReactions.has(type)) {
+      if (userReactions[type]) {
         removeMutation.mutate(type);
       } else {
         addMutation.mutate(type);
@@ -121,7 +122,7 @@ export function useReaction({
 
   return {
     reactions,
-    userReactions,
+    hasReaction,
     toggleReaction,
     isLoading: addMutation.isPending || removeMutation.isPending,
   };

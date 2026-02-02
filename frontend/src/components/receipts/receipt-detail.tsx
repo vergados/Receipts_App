@@ -105,7 +105,7 @@ function EvidenceCard({ evidence }: { evidence: EvidenceItem }) {
 export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
   const [showAllEvidence, setShowAllEvidence] = useState(false);
 
-  const { reactions, userReactions, toggleReaction } = useReaction({
+  const { reactions, hasReaction, toggleReaction } = useReaction({
     receiptId: receipt.id,
     initialReactions: receipt.reactions,
   });
@@ -226,10 +226,10 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
               size="sm"
               onClick={() => toggleReaction('support')}
               className={cn(
-                userReactions.has('support') && "bg-green-600 hover:bg-green-700 text-white border-green-600"
+                hasReaction('support') && "bg-green-600 hover:bg-green-700 text-white border-green-600"
               )}
             >
-              <ThumbsUp className={cn("h-4 w-4 mr-2", userReactions.has('support') && "fill-current")} />
+              <ThumbsUp className={cn("h-4 w-4 mr-2", hasReaction('support') && "fill-current")} />
               {formatNumber(reactions.support)}
             </Button>
             <Button
@@ -237,10 +237,10 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
               size="sm"
               onClick={() => toggleReaction('dispute')}
               className={cn(
-                userReactions.has('dispute') && "bg-red-600 hover:bg-red-700 text-white border-red-600"
+                hasReaction('dispute') && "bg-red-600 hover:bg-red-700 text-white border-red-600"
               )}
             >
-              <ThumbsDown className={cn("h-4 w-4 mr-2", userReactions.has('dispute') && "fill-current")} />
+              <ThumbsDown className={cn("h-4 w-4 mr-2", hasReaction('dispute') && "fill-current")} />
               {formatNumber(reactions.dispute)}
             </Button>
             <Button
@@ -248,10 +248,10 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
               size="sm"
               onClick={() => toggleReaction('bookmark')}
               className={cn(
-                userReactions.has('bookmark') && "bg-primary hover:bg-primary/90 text-primary-foreground border-primary"
+                hasReaction('bookmark') && "bg-primary hover:bg-primary/90 text-primary-foreground border-primary"
               )}
             >
-              <Bookmark className={cn("h-4 w-4 mr-2", userReactions.has('bookmark') && "fill-current")} />
+              <Bookmark className={cn("h-4 w-4 mr-2", hasReaction('bookmark') && "fill-current")} />
               {formatNumber(reactions.bookmark)}
             </Button>
           </div>

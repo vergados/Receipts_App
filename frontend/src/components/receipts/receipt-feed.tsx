@@ -43,8 +43,10 @@ export function ReceiptFeed({
     queryKey,
     queryFn: ({ pageParam }) => fetchFeed(endpoint, pageParam),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => 
+    getNextPageParam: (lastPage) =>
       lastPage.pagination.has_more ? lastPage.pagination.next_cursor : undefined,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
   
   // Auto-load more when scrolling
