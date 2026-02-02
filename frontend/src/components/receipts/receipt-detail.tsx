@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   ThumbsUp, ThumbsDown, Bookmark, GitFork, Share2, Flag,
   Image, Link as LinkIcon, Video, Quote, ExternalLink,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Check
 } from 'lucide-react';
 import type { Receipt, ReceiptChain, EvidenceItem, EvidenceType } from '@/lib/types';
 import { formatRelativeTime, formatDateTime, formatNumber, cn } from '@/lib/utils';
@@ -106,6 +106,7 @@ function EvidenceCard({ evidence }: { evidence: EvidenceItem }) {
 export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
   const [showAllEvidence, setShowAllEvidence] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const { reactions, hasReaction, toggleReaction } = useReaction({
     receiptId: receipt.id,
@@ -115,6 +116,42 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
   const visibleEvidence = showAllEvidence
     ? receipt.evidence
     : receipt.evidence.slice(0, 3);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/receipt/${receipt.id}`;
+    const shareData = {
+      title: 'Receipt',
+      text: receipt.claim_text.slice(0, 100) + (receipt.claim_text.length > 100 ? '...' : ''),
+      url,
+    };
+
+    // Try native share API first (mobile)
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        // User cancelled or error, fall back to clipboard
+      }
+    }
+
+    // Fall back to clipboard
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
   
   return (
     <div className="space-y-6">
@@ -265,8 +302,12 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
                 Counter
               </Button>
             </Link>
-            <Button variant="ghost" size="sm">
-              <Share2 className="h-4 w-4" />
+            <Button variant="ghost" size="sm" onClick={handleShare}>
+              {copied ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <Share2 className="h-4 w-4" />
+              )}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setShowReportModal(true)}>
               <Flag className="h-4 w-4" />
