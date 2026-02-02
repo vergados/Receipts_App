@@ -6,6 +6,7 @@ import { Receipt, Search, Plus, User, LogOut, Menu, X, Shield } from 'lucide-rea
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
+import { ThemeDropdown } from '@/components/ui/theme-toggle';
 import { NotificationDropdown } from '@/components/notifications/notification-dropdown';
 import { useAuthStore } from '@/state/auth-store';
 import { cn } from '@/lib/utils';
@@ -72,7 +73,9 @@ export function Header() {
         </form>
         
         {/* Actions */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          <ThemeDropdown />
+
           {isAuthenticated ? (
             <>
               <Link href="/create">

@@ -6,3 +6,4 @@ export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
 export { Badge } from './badge';
 export { Spinner, LoadingScreen, LoadingCard } from './spinner';
 export { VideoPlayer } from './video-player';
+export { ThemeToggle, ThemeDropdown } from './theme-toggle';
