@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ReportModal } from '@/components/moderation/report-modal';
 
 interface ReceiptDetailProps {
   receipt: Receipt;
@@ -104,6 +105,7 @@ function EvidenceCard({ evidence }: { evidence: EvidenceItem }) {
 
 export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
   const [showAllEvidence, setShowAllEvidence] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const { reactions, hasReaction, toggleReaction } = useReaction({
     receiptId: receipt.id,
@@ -266,12 +268,20 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
             <Button variant="ghost" size="sm">
               <Share2 className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={() => setShowReportModal(true)}>
               <Flag className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </Card>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="receipt"
+        targetId={receipt.id}
+      />
       
       {/* Fork Count */}
       {receipt.fork_count > 0 && (
