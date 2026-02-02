@@ -22,7 +22,7 @@ export default function TopicsPage() {
       <h1 className="text-2xl font-bold mb-6">Topics</h1>
       <div className="grid gap-4">
         {data?.topics.map((topic) => (
-          <Link key={topic.id} href={`/feed/topic/${topic.slug}`}>
+          <Link key={topic.id} href={`/topics/${topic.slug}`}>
             <Card className="p-4 hover:shadow-md transition-shadow">
               <h2 className="font-semibold">{topic.name}</h2>
               {topic.description && <p className="text-sm text-muted-foreground">{topic.description}</p>}
