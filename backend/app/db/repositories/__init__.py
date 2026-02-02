@@ -2,6 +2,7 @@
 
 from app.db.repositories.base import BaseRepository
 from app.db.repositories.export import ExportRepository
+from app.db.repositories.notification import NotificationRepository
 from app.db.repositories.reaction import ReactionRepository
 from app.db.repositories.receipt import EvidenceRepository, ReceiptRepository
 from app.db.repositories.report import ModerationActionRepository, ReportRepository
@@ -19,4 +20,5 @@ __all__ = [
     "ReportRepository",
     "ModerationActionRepository",
     "ExportRepository",
+    "NotificationRepository",
 ]

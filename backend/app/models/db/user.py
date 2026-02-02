@@ -62,7 +62,13 @@ class User(Base):
         foreign_keys="UserBlock.blocker_id",
         lazy="dynamic",
     )
-    
+    notifications: Mapped[list["Notification"]] = relationship(
+        "Notification",
+        back_populates="user",
+        foreign_keys="Notification.user_id",
+        lazy="dynamic",
+    )
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, handle={self.handle})>"
 
@@ -99,3 +105,4 @@ class UserBlock(Base):
 from app.models.db.receipt import Receipt  # noqa: E402
 from app.models.db.reaction import Reaction  # noqa: E402
 from app.models.db.report import Report  # noqa: E402
+from app.models.db.notification import Notification  # noqa: E402

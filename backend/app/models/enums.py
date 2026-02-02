@@ -79,6 +79,17 @@ class ExportStatus(str, Enum):
 
 class ExportFormat(str, Enum):
     """Format for exported receipt cards."""
-    
+
     IMAGE = "image"
     # VIDEO = "video"  # v2
+
+
+class NotificationType(str, Enum):
+    """Type of notification."""
+
+    RECEIPT_SUPPORT = "receipt_support"  # Someone supported your receipt
+    RECEIPT_DISPUTE = "receipt_dispute"  # Someone disputed your receipt
+    RECEIPT_COUNTER = "receipt_counter"  # Someone countered your receipt
+    RECEIPT_BOOKMARK = "receipt_bookmark"  # Someone bookmarked your receipt
+    NEW_FOLLOWER = "new_follower"  # Someone followed you (future)
+    MENTION = "mention"  # Someone mentioned you (future)

@@ -8,6 +8,7 @@ export type ReportStatus = 'pending' | 'reviewed' | 'actioned' | 'dismissed';
 export type TargetType = 'receipt' | 'user';
 export type ExportStatus = 'processing' | 'completed' | 'failed';
 export type ExportFormat = 'image';
+export type NotificationType = 'receipt_support' | 'receipt_dispute' | 'receipt_counter' | 'receipt_bookmark' | 'new_follower' | 'mention';
 
 // User types
 export interface UserPublic {
@@ -249,4 +250,32 @@ export interface TopicFeedResponse {
   topic: Topic;
   receipts: Receipt[];
   pagination: PaginationInfo;
+}
+
+// Notification types
+export interface NotificationActor {
+  id: string;
+  handle: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+export interface NotificationReceipt {
+  id: string;
+  claim_text: string;
+}
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  is_read: boolean;
+  actor: NotificationActor | null;
+  receipt: NotificationReceipt | null;
+  created_at: string;
+}
+
+export interface NotificationListResponse {
+  notifications: Notification[];
+  total: number;
+  unread_count: number;
 }

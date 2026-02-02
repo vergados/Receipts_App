@@ -5,12 +5,13 @@ from typing import Sequence
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
+from app.db.repositories.notification import NotificationRepository
 from app.db.repositories.reaction import ReactionRepository
 from app.db.repositories.receipt import EvidenceRepository, ReceiptRepository
 from app.db.repositories.topic import TopicRepository
 from app.models.db.receipt import EvidenceItem, Receipt
 from app.models.db.user import User
-from app.models.enums import ReactionType
+from app.models.enums import NotificationType, ReactionType
 from app.models.schemas.evidence import EvidenceCreate
 from app.models.schemas.receipt import (
     AuthorSummary,
@@ -58,6 +59,7 @@ class ReceiptService:
         self.evidence_repo = EvidenceRepository(db)
         self.topic_repo = TopicRepository(db)
         self.reaction_repo = ReactionRepository(db)
+        self.notification_repo = NotificationRepository(db)
 
     def create_receipt(
         self,
@@ -140,6 +142,14 @@ class ReceiptService:
 
         # Update parent fork count
         self.repo.increment_fork_count(parent_id)
+
+        # Notify parent receipt author of the counter-receipt
+        self.notification_repo.create_notification(
+            user_id=parent.author_id,
+            notification_type=NotificationType.RECEIPT_COUNTER,
+            actor_id=author.id,
+            receipt_id=receipt.id,
+        )
 
         # Refresh to get all relations
         receipt = self.repo.get_by_id_with_relations(receipt.id)

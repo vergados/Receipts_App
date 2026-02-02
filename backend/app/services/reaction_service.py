@@ -3,11 +3,12 @@
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
+from app.db.repositories.notification import NotificationRepository
 from app.db.repositories.reaction import ReactionRepository
 from app.db.repositories.receipt import ReceiptRepository
 from app.models.db.reaction import Reaction
 from app.models.db.user import User
-from app.models.enums import ReactionType
+from app.models.enums import NotificationType, ReactionType
 from app.models.schemas.receipt import ReactionCounts
 
 logger = get_logger(__name__)
@@ -32,6 +33,7 @@ class ReactionService:
         self.db = db
         self.repo = ReactionRepository(db)
         self.receipt_repo = ReceiptRepository(db)
+        self.notification_repo = NotificationRepository(db)
 
     def add_reaction(
         self,
@@ -61,6 +63,20 @@ class ReactionService:
 
         # Update denormalized count
         self.receipt_repo.update_reaction_count(receipt_id)
+
+        # Create notification for receipt author
+        notification_type_map = {
+            ReactionType.SUPPORT: NotificationType.RECEIPT_SUPPORT,
+            ReactionType.DISPUTE: NotificationType.RECEIPT_DISPUTE,
+            ReactionType.BOOKMARK: NotificationType.RECEIPT_BOOKMARK,
+        }
+        if reaction_type in notification_type_map:
+            self.notification_repo.create_notification(
+                user_id=receipt.author_id,
+                notification_type=notification_type_map[reaction_type],
+                actor_id=user.id,
+                receipt_id=receipt_id,
+            )
 
         logger.info(
             "Reaction added",

@@ -7,6 +7,7 @@ from app.api.v1.evidence import router as evidence_router
 from app.api.v1.exports import router as exports_router
 from app.api.v1.feed import router as feed_router
 from app.api.v1.moderation import router as moderation_router
+from app.api.v1.notifications import router as notifications_router
 from app.api.v1.reactions import router as reactions_router
 from app.api.v1.receipts import router as receipts_router
 from app.api.v1.search import router as search_router
@@ -28,3 +29,4 @@ api_router.include_router(topics_router)
 api_router.include_router(moderation_router)
 api_router.include_router(exports_router)
 api_router.include_router(uploads_router)
+api_router.include_router(notifications_router)

@@ -6,6 +6,7 @@ import { Receipt, Search, Plus, User, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
+import { NotificationDropdown } from '@/components/notifications/notification-dropdown';
 import { useAuthStore } from '@/state/auth-store';
 import { cn } from '@/lib/utils';
 
@@ -83,7 +84,9 @@ export function Header() {
                   <Plus className="h-5 w-5" />
                 </Button>
               </Link>
-              
+
+              <NotificationDropdown />
+
               <div className="relative group">
                 <button className="flex items-center space-x-2">
                   <Avatar
