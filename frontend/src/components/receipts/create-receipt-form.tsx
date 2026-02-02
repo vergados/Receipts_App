@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
-import { Plus, X, Image, Link as LinkIcon, Video, Quote, Loader2 } from 'lucide-react';
-import type { ReceiptCreate, EvidenceCreate, EvidenceType } from '@/lib/types';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Plus, X, Image, Link as LinkIcon, Video, Quote, Loader2, Tag } from 'lucide-react';
+import type { ReceiptCreate, EvidenceCreate, EvidenceType, Topic } from '@/lib/types';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 const evidenceTypes: { type: EvidenceType; icon: React.ReactNode; label: string }[] = [
   { type: 'image', icon: <Image className="h-4 w-4" />, label: 'Image' },
@@ -26,10 +28,30 @@ export function CreateReceiptForm({ forkId }: { forkId?: string }) {
   const router = useRouter();
   const [claimText, setClaimText] = useState('');
   const [implicationText, setImplicationText] = useState('');
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [evidence, setEvidence] = useState<EvidenceFormItem[]>([
     { id: '1', type: 'image', content_uri: '', caption: '' },
   ]);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch available topics
+  const { data: topicsData } = useQuery({
+    queryKey: ['topics'],
+    queryFn: async () => {
+      const response = await apiClient.get('/topics');
+      return response.data as { topics: Topic[] };
+    },
+  });
+
+  const topics = topicsData?.topics || [];
+
+  const toggleTopic = (topicId: string) => {
+    setSelectedTopicIds((prev) =>
+      prev.includes(topicId)
+        ? prev.filter((id) => id !== topicId)
+        : [...prev, topicId]
+    );
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: ReceiptCreate) => {
@@ -82,6 +104,7 @@ export function CreateReceiptForm({ forkId }: { forkId?: string }) {
     const data: ReceiptCreate = {
       claim_text: claimText.trim(),
       implication_text: implicationText.trim() || undefined,
+      topic_ids: selectedTopicIds.length > 0 ? selectedTopicIds : undefined,
       evidence: validEvidence.map(({ id, ...rest }) => rest),
     };
 
@@ -123,6 +146,34 @@ export function CreateReceiptForm({ forkId }: { forkId?: string }) {
           className="min-h-[80px]"
           maxLength={1000}
         />
+      </div>
+
+      {/* Topic Selection */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium flex items-center gap-2">
+          <Tag className="h-4 w-4" />
+          Topics <span className="text-muted-foreground">(optional)</span>
+        </label>
+        <p className="text-xs text-muted-foreground">
+          Select one or more topics to help others find your receipt
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {topics.map((topic) => (
+            <button
+              key={topic.id}
+              type="button"
+              onClick={() => toggleTopic(topic.id)}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-sm transition-colors",
+                selectedTopicIds.includes(topic.id)
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted hover:bg-muted/80"
+              )}
+            >
+              {topic.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-4">
