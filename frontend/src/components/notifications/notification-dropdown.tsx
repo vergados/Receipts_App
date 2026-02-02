@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Bell, ThumbsUp, ThumbsDown, Bookmark, GitFork, Check, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Avatar } from '@/components/ui/avatar';
+import { useAuthStore } from '@/state/auth-store';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import type { Notification, NotificationListResponse, NotificationType } from '@/lib/types';
 
@@ -115,6 +116,7 @@ export function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuthStore();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -128,13 +130,15 @@ export function NotificationDropdown() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['notifications'],
     queryFn: async () => {
       const res = await apiClient.get<NotificationListResponse>('/notifications?limit=10');
       return res.data;
     },
     refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: isAuthenticated, // Only fetch when authenticated
+    retry: 1,
   });
 
   const markReadMutation = useMutation({
@@ -174,7 +178,7 @@ export function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 rounded-md border bg-background shadow-lg">
+        <div className="absolute right-0 sm:right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-md border bg-background shadow-lg -mr-2 sm:mr-0 z-50">
           <div className="flex items-center justify-between p-3 border-b">
             <h3 className="font-semibold">Notifications</h3>
             {unreadCount > 0 && (
@@ -197,6 +201,10 @@ export function NotificationDropdown() {
             {isLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : isError ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                Failed to load notifications
               </div>
             ) : data?.notifications.length === 0 ? (
               <div className="text-center py-8 text-sm text-muted-foreground">
