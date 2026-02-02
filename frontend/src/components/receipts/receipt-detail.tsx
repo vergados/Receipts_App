@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { VideoPlayer } from '@/components/ui/video-player';
 import { ReportModal } from '@/components/moderation/report-modal';
 
 interface ReceiptDetailProps {
@@ -75,10 +76,7 @@ function EvidenceCard({ evidence }: { evidence: EvidenceItem }) {
         )}
         
         {evidence.type === 'video' && (
-          <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
-            <Video className="h-12 w-12 text-muted-foreground" />
-            <span className="ml-2 text-muted-foreground">Video evidence</span>
-          </div>
+          <VideoPlayer src={evidence.content_uri} />
         )}
         
         {evidence.caption && (
