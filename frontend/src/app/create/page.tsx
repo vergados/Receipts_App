@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, X, Image, Link as LinkIcon, Video, Quote } from 'lucide-react';
+import { X, Image, Link as LinkIcon, Video, Quote } from 'lucide-react';
 import { Button, Input, Textarea, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import type { EvidenceCreate, EvidenceType } from '@/lib/types';
@@ -10,6 +10,14 @@ import type { EvidenceCreate, EvidenceType } from '@/lib/types';
 const evidenceIcons = { image: Image, link: LinkIcon, video: Video, quote: Quote };
 
 export default function CreatePage() {
+  return (
+    <Suspense>
+      <CreatePageContent />
+    </Suspense>
+  );
+}
+
+function CreatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const forkId = searchParams.get('fork');
