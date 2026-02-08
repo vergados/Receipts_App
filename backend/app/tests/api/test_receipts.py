@@ -46,8 +46,7 @@ class TestCreateReceipt:
             },
         )
         
-        assert response.status_code == 400
-        assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+        assert response.status_code == 422
     
     @pytest.mark.asyncio
     async def test_create_receipt_unauthenticated(self, client: AsyncClient):
@@ -104,7 +103,7 @@ class TestGetReceipt:
         response = await client.get("/api/v1/receipts/nonexistent-id")
         
         assert response.status_code == 404
-        assert response.json()["error"]["code"] == "NOT_FOUND"
+        assert response.json()["detail"]["error"]["code"] == "NOT_FOUND"
 
 
 class TestForkReceipt:

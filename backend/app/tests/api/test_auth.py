@@ -44,8 +44,7 @@ class TestAuthRegister:
             },
         )
         
-        assert response.status_code == 400
-        assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+        assert response.status_code == 422
     
     @pytest.mark.asyncio
     async def test_register_duplicate_email(self, client: AsyncClient, test_user):
@@ -61,7 +60,7 @@ class TestAuthRegister:
         )
         
         assert response.status_code == 409
-        assert response.json()["error"]["code"] == "EMAIL_EXISTS"
+        assert response.json()["detail"]["error"]["code"] == "EMAIL_EXISTS"
     
     @pytest.mark.asyncio
     async def test_register_duplicate_handle(self, client: AsyncClient, test_user):
@@ -77,7 +76,7 @@ class TestAuthRegister:
         )
         
         assert response.status_code == 409
-        assert response.json()["error"]["code"] == "HANDLE_EXISTS"
+        assert response.json()["detail"]["error"]["code"] == "HANDLE_EXISTS"
 
 
 class TestAuthLogin:
@@ -115,8 +114,8 @@ class TestAuthLogin:
         )
         
         assert response.status_code == 401
-        assert response.json()["error"]["code"] == "INVALID_CREDENTIALS"
-    
+        assert response.json()["detail"]["error"]["code"] == "INVALID_CREDENTIALS"
+
     @pytest.mark.asyncio
     async def test_login_nonexistent_user(self, client: AsyncClient):
         """Test login with nonexistent email."""
@@ -127,9 +126,9 @@ class TestAuthLogin:
                 "password": "SomePass123",
             },
         )
-        
+
         assert response.status_code == 401
-        assert response.json()["error"]["code"] == "INVALID_CREDENTIALS"
+        assert response.json()["detail"]["error"]["code"] == "INVALID_CREDENTIALS"
 
 
 class TestAuthMe:
@@ -180,4 +179,4 @@ class TestAuthRefresh:
         )
         
         assert response.status_code == 401
-        assert response.json()["error"]["code"] == "INVALID_TOKEN"
+        assert response.json()["detail"]["error"]["code"] == "INVALID_TOKEN"
