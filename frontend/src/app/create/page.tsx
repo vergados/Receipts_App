@@ -1,19 +1,23 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { X, Image, Link as LinkIcon, Video, Quote } from 'lucide-react';
+import { X, Image, Link as LinkIcon, Video, Quote, Upload, Loader2 } from 'lucide-react';
 import { Button, Input, Textarea, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
+import { RequireAuth } from '@/components/auth';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
+import { toast } from 'sonner';
 import type { EvidenceCreate, EvidenceType } from '@/lib/types';
 
 const evidenceIcons = { image: Image, link: LinkIcon, video: Video, quote: Quote };
 
 export default function CreatePage() {
   return (
-    <Suspense>
-      <CreatePageContent />
-    </Suspense>
+    <RequireAuth>
+      <Suspense>
+        <CreatePageContent />
+      </Suspense>
+    </RequireAuth>
   );
 }
 
@@ -27,9 +31,28 @@ function CreatePageContent() {
   const [evidence, setEvidence] = useState<EvidenceCreate[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState<number | null>(null);
+  const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const addEvidence = (type: EvidenceType) => {
     setEvidence([...evidence, { type, content_uri: '', caption: '' }]);
+  };
+
+  const handleFileUpload = async (idx: number, file: File) => {
+    setUploading(idx);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await apiClient.post('/uploads/file', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      updateEvidence(idx, 'content_uri', res.data.content_uri);
+      toast.success('Image uploaded');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setUploading(null);
+    }
   };
 
   const updateEvidence = (idx: number, field: keyof EvidenceCreate, value: string) => {
@@ -58,6 +81,7 @@ function CreatePageContent() {
         implication_text: implication || undefined,
         evidence: evidence.filter(e => e.content_uri),
       });
+      toast.success('Receipt posted successfully');
       router.push(`/receipt/${res.data.id}`);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -109,12 +133,61 @@ function CreatePageContent() {
                     <X className="h-4 w-4" />
                   </button>
                   <p className="text-xs font-medium capitalize mb-2">{ev.type}</p>
-                  <Input
-                    placeholder={ev.type === 'quote' ? 'Quote text' : 'URL'}
-                    value={ev.content_uri}
-                    onChange={(e) => updateEvidence(idx, 'content_uri', e.target.value)}
-                    className="mb-2"
-                  />
+
+                  {(ev.type === 'image' || ev.type === 'video') ? (
+                    <div className="space-y-2 mb-2">
+                      {ev.content_uri && ev.type === 'image' && (
+                        <div className="rounded overflow-hidden border bg-muted">
+                          <img
+                            src={ev.content_uri}
+                            alt="Preview"
+                            className="max-h-48 mx-auto object-contain"
+                          />
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={uploading === idx}
+                          onClick={() => fileInputRefs.current[idx]?.click()}
+                        >
+                          {uploading === idx ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4 mr-1" />
+                          )}
+                          {uploading === idx ? 'Uploading...' : 'Choose file'}
+                        </Button>
+                        <span className="text-xs text-muted-foreground self-center">or paste a URL below</span>
+                      </div>
+                      <input
+                        type="file"
+                        accept={ev.type === 'image' ? 'image/png,image/jpeg,image/gif,image/webp' : 'video/mp4,video/webm'}
+                        className="hidden"
+                        ref={(el) => { fileInputRefs.current[idx] = el; }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(idx, file);
+                          e.target.value = '';
+                        }}
+                      />
+                      <Input
+                        placeholder="Or enter URL"
+                        value={ev.content_uri}
+                        onChange={(e) => updateEvidence(idx, 'content_uri', e.target.value)}
+                      />
+                    </div>
+                  ) : (
+                    <Input
+                      placeholder={ev.type === 'quote' ? 'Quote text' : 'URL'}
+                      value={ev.content_uri}
+                      onChange={(e) => updateEvidence(idx, 'content_uri', e.target.value)}
+                      className="mb-2"
+                    />
+                  )}
+
                   <Input
                     placeholder="Caption (optional)"
                     value={ev.caption || ''}

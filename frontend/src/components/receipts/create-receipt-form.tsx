@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Plus, X, Image, Link as LinkIcon, Video, Quote, Loader2, Tag } from 'lucide-react';
+import { Plus, X, Image, Link as LinkIcon, Video, Quote, Loader2, Tag, Zap, Building2, FileText } from 'lucide-react';
 import type { ReceiptCreate, EvidenceCreate, EvidenceType, Topic } from '@/lib/types';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useAuthStore } from '@/state/auth-store';
+import { useCurrentOrganization, useOrganizationStore } from '@/state/organization-store';
 import { cn } from '@/lib/utils';
 
 const evidenceTypes: { type: EvidenceType; icon: React.ReactNode; label: string }[] = [
@@ -26,6 +28,10 @@ interface EvidenceFormItem extends EvidenceCreate {
 
 export function CreateReceiptForm({ forkId }: { forkId?: string }) {
   const router = useRouter();
+  const { user } = useAuthStore();
+  const currentOrg = useCurrentOrganization();
+  const { currentOrgInvestigations, loadCurrentOrgInvestigations } = useOrganizationStore();
+
   const [claimText, setClaimText] = useState('');
   const [implicationText, setImplicationText] = useState('');
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
@@ -33,6 +39,21 @@ export function CreateReceiptForm({ forkId }: { forkId?: string }) {
     { id: '1', type: 'image', content_uri: '', caption: '' },
   ]);
   const [error, setError] = useState<string | null>(null);
+
+  // Newsroom-specific fields
+  const [publishAsOrganization, setPublishAsOrganization] = useState(false);
+  const [isBreakingNews, setIsBreakingNews] = useState(false);
+  const [selectedInvestigationId, setSelectedInvestigationId] = useState<string>('');
+
+  // Load investigations if user is in a newsroom
+  useEffect(() => {
+    if (currentOrg) {
+      loadCurrentOrgInvestigations();
+    }
+  }, [currentOrg?.id]);
+
+  const isNewsroomMember = !!currentOrg;
+  const isVerifiedNewsroom = currentOrg?.is_verified || false;
 
   // Fetch available topics
   const { data: topicsData } = useQuery({
@@ -106,6 +127,9 @@ export function CreateReceiptForm({ forkId }: { forkId?: string }) {
       implication_text: implicationText.trim() || undefined,
       topic_ids: selectedTopicIds.length > 0 ? selectedTopicIds : undefined,
       evidence: validEvidence.map(({ id, ...rest }) => rest),
+      organization_id: publishAsOrganization && currentOrg ? currentOrg.id : undefined,
+      is_breaking_news: isBreakingNews && isVerifiedNewsroom ? isBreakingNews : undefined,
+      investigation_thread_id: selectedInvestigationId || undefined,
     };
 
     createMutation.mutate(data);
@@ -175,6 +199,81 @@ export function CreateReceiptForm({ forkId }: { forkId?: string }) {
           ))}
         </div>
       </div>
+
+      {/* Newsroom Options */}
+      {isNewsroomMember && (
+        <Card className="p-4 space-y-4 bg-muted/50">
+          <div className="flex items-center gap-2 mb-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            <h3 className="font-medium">Newsroom Options</h3>
+          </div>
+
+          {/* Publish as Organization */}
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={publishAsOrganization}
+              onChange={(e) => setPublishAsOrganization(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <div>
+              <p className="text-sm font-medium">Publish as {currentOrg?.name}</p>
+              <p className="text-xs text-muted-foreground">
+                This receipt will be attributed to your organization
+              </p>
+            </div>
+          </label>
+
+          {/* Breaking News Toggle (only for verified orgs) */}
+          {isVerifiedNewsroom && publishAsOrganization && (
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isBreakingNews}
+                onChange={(e) => setIsBreakingNews(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-destructive" />
+                <div>
+                  <p className="text-sm font-medium">Mark as Breaking News</p>
+                  <p className="text-xs text-muted-foreground">
+                    Give this receipt priority visibility
+                  </p>
+                </div>
+              </div>
+            </label>
+          )}
+
+          {/* Investigation Thread Selector */}
+          {publishAsOrganization && currentOrgInvestigations.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Add to Investigation
+                <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <select
+                value={selectedInvestigationId}
+                onChange={(e) => setSelectedInvestigationId(e.target.value)}
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">None - Standalone receipt</option>
+                {currentOrgInvestigations
+                  .filter((inv) => !inv.is_published)
+                  .map((investigation) => (
+                    <option key={investigation.id} value={investigation.id}>
+                      {investigation.title}
+                    </option>
+                  ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Link this receipt to an ongoing investigation
+              </p>
+            </div>
+          )}
+        </Card>
+      )}
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">

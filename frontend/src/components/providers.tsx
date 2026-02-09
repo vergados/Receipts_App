@@ -2,7 +2,19 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
-import { useState } from 'react';
+import { Toaster } from 'sonner';
+import { useState, useEffect } from 'react';
+import { useAuthInit } from '@/state/auth-store';
+
+function AuthInitializer({ children }: { children: React.ReactNode }) {
+  const checkAuth = useAuthInit();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  return <>{children}</>;
+}
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [client] = useState(() => new QueryClient({
@@ -38,7 +50,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <QueryProvider>
-        {children}
+        <AuthInitializer>
+          {children}
+        </AuthInitializer>
+        <Toaster richColors position="top-right" />
       </QueryProvider>
     </ThemeProvider>
   );

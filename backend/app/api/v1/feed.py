@@ -1,5 +1,8 @@
 """Feed API endpoints - SYNC version."""
 
+import base64
+import json
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -20,6 +23,30 @@ from app.services.topic_service import TopicService
 router = APIRouter(prefix="/feed", tags=["feed"])
 
 
+def _decode_cursor(cursor: str | None) -> tuple[datetime | None, str | None]:
+    """Decode a base64-encoded cursor into (created_at, id).
+
+    Falls back to treating cursor as an integer skip for backward compatibility.
+    """
+    if not cursor:
+        return None, None
+    try:
+        decoded = json.loads(base64.urlsafe_b64decode(cursor))
+        return datetime.fromisoformat(decoded["created_at"]), decoded["id"]
+    except Exception:
+        # Backward compat: if it's a plain integer, ignore it (no keyset available)
+        return None, None
+
+
+def _encode_cursor(receipt) -> str:
+    """Encode a receipt's created_at and id into a base64 cursor."""
+    payload = {
+        "created_at": receipt.created_at.isoformat(),
+        "id": receipt.id,
+    }
+    return base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
+
+
 @router.get("", response_model=FeedResponse)
 def get_feed(
     db: DbSession,
@@ -32,14 +59,14 @@ def get_feed(
     receipt_service = ReceiptService(db)
 
     # Decode cursor
-    skip = 0
-    if cursor:
-        try:
-            skip = int(cursor)
-        except ValueError:
-            skip = 0
+    cursor_created_at, cursor_id = _decode_cursor(cursor)
 
-    receipts = service.get_home_feed(user=user, skip=skip, limit=limit + 1)
+    receipts = service.get_home_feed(
+        user=user,
+        cursor_created_at=cursor_created_at,
+        cursor_id=cursor_id,
+        limit=limit + 1,
+    )
 
     has_more = len(receipts) > limit
     if has_more:
@@ -52,7 +79,7 @@ def get_feed(
     return FeedResponse(
         receipts=receipt_responses,
         pagination=PaginationInfo(
-            next_cursor=str(skip + limit) if has_more else None,
+            next_cursor=_encode_cursor(receipts[-1]) if has_more and receipts else None,
             has_more=has_more,
         ),
     )
@@ -115,14 +142,14 @@ def get_topic_feed(
     topic_service = TopicService(db)
 
     # Decode cursor
-    skip = 0
-    if cursor:
-        try:
-            skip = int(cursor)
-        except ValueError:
-            skip = 0
+    cursor_created_at, cursor_id = _decode_cursor(cursor)
 
-    receipts, topic = feed_service.get_topic_feed(slug, skip=skip, limit=limit + 1)
+    receipts, topic = feed_service.get_topic_feed(
+        slug,
+        cursor_created_at=cursor_created_at,
+        cursor_id=cursor_id,
+        limit=limit + 1,
+    )
 
     if not topic:
         raise HTTPException(
@@ -145,7 +172,7 @@ def get_topic_feed(
         topic=topic_service.topic_to_response(topic, receipt_count),
         receipts=[receipt_service._receipt_to_response(r) for r in receipts],
         pagination=PaginationInfo(
-            next_cursor=str(skip + limit) if has_more else None,
+            next_cursor=_encode_cursor(receipts[-1]) if has_more and receipts else None,
             has_more=has_more,
         ),
     )

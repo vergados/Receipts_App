@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
+    reset_token_expire_hours: int = 1
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.1.20:3000"]
     cors_allow_credentials: bool = True
     cors_allow_methods: list[str] = ["*"]
@@ -33,9 +34,17 @@ class Settings(BaseSettings):
     allowed_image_types: list[str] = ["image/png", "image/jpeg", "image/gif", "image/webp"]
     allowed_video_types: list[str] = ["video/mp4", "video/webm"]
     rate_limit_enabled: bool = True
-    rate_limit_auth_per_minute: int = 10
-    rate_limit_read_per_minute: int = 100
-    rate_limit_write_per_minute: int = 30
+    rate_limit_auth_per_minute: int = 60
+    rate_limit_read_per_minute: int = 600
+    rate_limit_write_per_minute: int = 120
+    rate_limit_upload_per_minute: int = 10
+    rate_limit_export_per_minute: int = 5
+    export_card_width: int = 1200
+    export_card_quality: int = 90
+    storage_s3_bucket: str = ""
+    storage_s3_region: str = "us-east-1"
+    newsroom_enabled: bool = False
+    newsroom_beta_users: list[str] = []
     @computed_field
     @property
     def is_production(self) -> bool:
@@ -44,6 +53,11 @@ class Settings(BaseSettings):
     @property
     def max_image_size_bytes(self) -> int:
         return self.max_image_size_mb * 1024 * 1024
+
+    @computed_field
+    @property
+    def max_video_size_bytes(self) -> int:
+        return self.max_video_size_mb * 1024 * 1024
 
 @lru_cache
 def get_settings() -> Settings:

@@ -68,6 +68,36 @@ class User(Base):
         foreign_keys="Notification.user_id",
         lazy="dynamic",
     )
+    organization_memberships: Mapped[list["OrganizationMember"]] = relationship(
+        "OrganizationMember",
+        back_populates="user",
+        lazy="dynamic",
+    )
+
+    @property
+    def is_newsroom_member(self) -> bool:
+        """Check if user is a member of any verified organization."""
+        from app.models.db.organization import OrganizationMember
+        membership = (
+            self.organization_memberships
+            .join(OrganizationMember.organization)
+            .filter(OrganizationMember.is_active == True)
+            .filter(Organization.is_verified == True)
+            .first()
+        )
+        return membership is not None
+
+    @property
+    def primary_organization(self) -> "Organization | None":
+        """Get user's first active organization."""
+        from app.models.db.organization import OrganizationMember
+        membership = (
+            self.organization_memberships
+            .join(OrganizationMember.organization)
+            .filter(OrganizationMember.is_active == True)
+            .first()
+        )
+        return membership.organization if membership else None
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, handle={self.handle})>"
@@ -106,3 +136,4 @@ from app.models.db.receipt import Receipt  # noqa: E402
 from app.models.db.reaction import Reaction  # noqa: E402
 from app.models.db.report import Report  # noqa: E402
 from app.models.db.notification import Notification  # noqa: E402
+from app.models.db.organization import Organization, OrganizationMember  # noqa: E402

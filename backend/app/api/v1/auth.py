@@ -6,11 +6,13 @@ from app.core.dependencies import CurrentUser, DbSession
 from app.models.schemas.auth import (
     AccessTokenResponse,
     AuthResponse,
+    ForgotPasswordRequest,
     LoginRequest,
     RefreshRequest,
+    ResetPasswordRequest,
 )
 from app.models.schemas.user import UserCreate, UserPrivate
-from app.services.auth_service import AuthService, InvalidRefreshTokenError
+from app.services.auth_service import AuthService, InvalidPasswordResetTokenError, InvalidRefreshTokenError
 from app.services.user_service import (
     EmailAlreadyExistsError,
     HandleAlreadyExistsError,
@@ -97,6 +99,36 @@ def logout(user: CurrentUser) -> None:
     # In a full implementation, we'd invalidate the refresh token
     # For v1, client-side logout (discard tokens) is sufficient
     pass
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+def forgot_password(data: ForgotPasswordRequest, db: DbSession) -> dict:
+    """Request a password reset email.
+
+    Always returns 200 to not reveal whether email exists.
+    """
+    service = AuthService(db)
+    service.request_password_reset(data.email)
+    return {"message": "If an account exists with that email, a reset link has been sent."}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+def reset_password(data: ResetPasswordRequest, db: DbSession) -> dict:
+    """Reset password with a valid token."""
+    service = AuthService(db)
+    try:
+        service.reset_password(data.token, data.new_password)
+        return {"message": "Password has been reset successfully."}
+    except InvalidPasswordResetTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": "INVALID_TOKEN",
+                    "message": "Invalid or expired reset token",
+                }
+            },
+        )
 
 
 @router.get("/me", response_model=UserPrivate)

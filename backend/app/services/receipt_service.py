@@ -1,5 +1,6 @@
 """Receipt service with business logic - SYNC version."""
 
+from datetime import datetime
 from typing import Sequence
 
 from sqlalchemy.orm import Session
@@ -82,6 +83,9 @@ class ReceiptService:
             claim_type=data.claim_type,
             implication_text=data.implication_text,
             visibility=data.visibility,
+            organization_id=data.organization_id,
+            is_breaking_news=data.is_breaking_news,
+            investigation_thread_id=data.investigation_thread_id,
         )
 
         # Add topics
@@ -297,11 +301,17 @@ class ReceiptService:
     def get_by_author(
         self,
         author_id: str,
-        skip: int = 0,
+        cursor_created_at: datetime | None = None,
+        cursor_id: str | None = None,
         limit: int = 20,
     ) -> Sequence[Receipt]:
         """Get receipts by author."""
-        return self.repo.get_by_author(author_id, skip=skip, limit=limit)
+        return self.repo.get_by_author(
+            author_id,
+            cursor_created_at=cursor_created_at,
+            cursor_id=cursor_id,
+            limit=limit,
+        )
 
     def _receipt_to_response(self, receipt: Receipt) -> ReceiptResponse:
         """Convert Receipt model to ReceiptResponse schema."""
@@ -333,6 +343,9 @@ class ReceiptService:
             fork_count=receipt.fork_count,
             created_at=receipt.created_at,
             updated_at=receipt.updated_at,
+            organization_id=receipt.organization_id,
+            is_breaking_news=receipt.is_breaking_news or False,
+            investigation_thread_id=receipt.investigation_thread_id,
         )
 
     def _author_summary(self, author: User) -> AuthorSummary:

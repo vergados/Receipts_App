@@ -29,11 +29,24 @@ export const useAuthStore = create<AuthState>()(
       login: (user, accessToken, refreshToken) => {
         tokenManager.setTokens(accessToken, refreshToken);
         set({ user, isAuthenticated: true, isLoading: false });
+
+        // Initialize organization data if user is a newsroom member
+        if (user.organization_id) {
+          import('./organization-store').then(({ useOrganizationInit }) => {
+            const initOrganization = useOrganizationInit();
+            initOrganization(user).catch(console.error);
+          });
+        }
       },
-      
+
       logout: () => {
         tokenManager.clearTokens();
         set({ user: null, isAuthenticated: false });
+
+        // Clear organization data on logout
+        import('./organization-store').then(({ useOrganizationStore }) => {
+          useOrganizationStore.getState().reset();
+        });
       },
       
       setLoading: (isLoading) => {
@@ -63,14 +76,30 @@ export function useAuthInit() {
     // If we have cached user data, we're probably good
     if (isAuthenticated && user) {
       setLoading(false);
+
+      // Initialize organization data if user is a newsroom member
+      if (user.organization_id) {
+        const { useOrganizationInit } = await import('./organization-store');
+        const initOrganization = useOrganizationInit();
+        initOrganization(user).catch(console.error);
+      }
+
       return;
     }
-    
+
     // Otherwise, try to fetch current user
     try {
       const { apiClient } = await import('@/lib/api-client');
       const response = await apiClient.get('/auth/me');
-      setUser(response.data);
+      const userData = response.data;
+      setUser(userData);
+
+      // Initialize organization data if user is a newsroom member
+      if (userData.organization_id) {
+        const { useOrganizationInit } = await import('./organization-store');
+        const initOrganization = useOrganizationInit();
+        initOrganization(userData).catch(console.error);
+      }
     } catch {
       // Token invalid, clear it
       tokenManager.clearTokens();

@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Shield, Users, Flag, History, BarChart3, AlertTriangle,
   CheckCircle, XCircle, Ban, Loader2, Search, ChevronRight
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { toast } from 'sonner';
+import { RequireAuth } from '@/components/auth';
 import { useAuthStore } from '@/state/auth-store';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -114,6 +115,7 @@ function ReportsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin'] });
       setSelectedReport(null);
+      toast.success('Report reviewed');
     },
   });
 
@@ -255,6 +257,7 @@ function UsersTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      toast.success('User status updated');
     },
   });
 
@@ -379,18 +382,9 @@ function ActionsTab() {
   );
 }
 
-export default function AdminPage() {
-  const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+function AdminContent() {
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else if (user && !user.is_moderator) {
-      router.push('/');
-    }
-  }, [isAuthenticated, user, router]);
 
   const { data: stats } = useQuery({
     queryKey: ['admin', 'stats'],
@@ -400,16 +394,6 @@ export default function AdminPage() {
     },
     enabled: !!user?.is_moderator,
   });
-
-  if (!isAuthenticated || !user?.is_moderator) {
-    return (
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <div className="flex justify-center">
-          <Spinner />
-        </div>
-      </div>
-    );
-  }
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -458,5 +442,13 @@ export default function AdminPage() {
       {activeTab === 'users' && <UsersTab />}
       {activeTab === 'actions' && <ActionsTab />}
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <RequireAuth requireModerator>
+      <AdminContent />
+    </RequireAuth>
   );
 }

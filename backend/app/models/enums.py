@@ -93,3 +93,13 @@ class NotificationType(str, Enum):
     RECEIPT_BOOKMARK = "receipt_bookmark"  # Someone bookmarked your receipt
     NEW_FOLLOWER = "new_follower"  # Someone followed you (future)
     MENTION = "mention"  # Someone mentioned you (future)
+
+
+class OrganizationRole(str, Enum):
+    """Role within a newsroom organization."""
+
+    ADMIN = "admin"  # Full control over organization
+    EDITOR = "editor"  # Review and publish content
+    SENIOR_REPORTER = "senior_reporter"  # Direct publish capability
+    REPORTER = "reporter"  # Needs approval
+    CONTRIBUTOR = "contributor"  # Limited access

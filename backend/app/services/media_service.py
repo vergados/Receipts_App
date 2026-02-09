@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.core.permissions import PermissionChecker
+from app.models.db.user import User
 
 logger = get_logger(__name__)
 
@@ -42,6 +44,7 @@ class MediaService:
         filename: str,
         content_type: str,
         size_bytes: int,
+        user: User | None = None,
     ) -> dict:
         """Create a presigned upload URL/session."""
         # Validate content type
@@ -52,9 +55,15 @@ class MediaService:
                 f"Allowed types: {', '.join(allowed_types)}"
             )
 
-        # Validate size
-        is_video = content_type in settings.allowed_video_types
-        max_size = settings.max_video_size_bytes if is_video else settings.max_image_size_bytes
+        # Validate size - use dynamic limit based on organization membership
+        if user:
+            permission_checker = PermissionChecker(self.db, user)
+            max_upload_mb = permission_checker.get_user_upload_limit_mb()
+            max_size = max_upload_mb * 1024 * 1024
+        else:
+            # Fallback to default limits if user not provided
+            is_video = content_type in settings.allowed_video_types
+            max_size = settings.max_video_size_bytes if is_video else settings.max_image_size_bytes
 
         if size_bytes > max_size:
             max_mb = max_size / (1024 * 1024)
@@ -99,21 +108,19 @@ class MediaService:
         upload_id: str,
         user_id: str,
         file_data: bytes,
+        content_type: str = "",
     ) -> str:
         """Complete a local file upload."""
         # This is for local storage only
         # In production with S3, the client uploads directly to the presigned URL
 
-        # Find and save the file
-        # In a real implementation, we'd track upload sessions in the database
         upload_dir = Path(settings.storage_local_path) / "uploads" / user_id
 
-        # Find any file matching this upload_id
-        # For simplicity, we'll just save with a generic extension
-        file_path = upload_dir / f"{upload_id}"
+        ext = self._get_extension(content_type) if content_type else ""
+        file_path = upload_dir / f"{upload_id}{ext}"
         file_path.write_bytes(file_data)
 
-        content_uri = f"uploads/{user_id}/{upload_id}"
+        content_uri = f"uploads/{user_id}/{upload_id}{ext}"
 
         logger.info(
             "Upload completed",

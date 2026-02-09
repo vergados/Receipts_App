@@ -37,7 +37,7 @@ class Receipt(Base):
         ForeignKey("users.id"),
         index=True,
     )
-    
+
     # Content
     claim_text: Mapped[str] = mapped_column(Text)
     claim_type: Mapped[ClaimType] = mapped_column(
@@ -45,6 +45,25 @@ class Receipt(Base):
         default=ClaimType.TEXT,
     )
     implication_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Newsroom features (nullable for backward compatibility)
+    organization_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("organizations.id"),
+        nullable=True,
+        index=True,
+    )
+    is_breaking_news: Mapped[bool | None] = mapped_column(
+        Boolean,
+        nullable=True,
+        default=False,
+    )
+    investigation_thread_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("investigation_threads.id"),
+        nullable=True,
+        index=True,
+    )
     
     # Fork chain
     parent_receipt_id: Mapped[str | None] = mapped_column(
@@ -97,7 +116,17 @@ class Receipt(Base):
         back_populates="receipt",
         cascade="all, delete-orphan",
     )
-    
+    organization: Mapped["Organization | None"] = relationship(
+        "Organization",
+        back_populates="receipts",
+        foreign_keys=[organization_id],
+    )
+    investigation_thread: Mapped["InvestigationThread | None"] = relationship(
+        "InvestigationThread",
+        back_populates="receipts",
+        foreign_keys=[investigation_thread_id],
+    )
+
     def __repr__(self) -> str:
         return f"<Receipt(id={self.id}, author_id={self.author_id})>"
 
@@ -138,6 +167,8 @@ class EvidenceItem(Base):
 
 
 # Import at bottom to avoid circular imports
+from app.models.db.investigation import InvestigationThread  # noqa: E402, F401
+from app.models.db.organization import Organization  # noqa: E402, F401
 from app.models.db.reaction import Reaction  # noqa: E402, F401
 from app.models.db.topic import Topic  # noqa: E402, F401
 from app.models.db.user import User  # noqa: E402, F401

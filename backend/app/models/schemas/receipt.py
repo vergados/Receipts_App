@@ -30,14 +30,19 @@ class AuthorSummary(BaseSchema):
 
 class ReceiptCreate(BaseSchema):
     """Schema for creating a receipt."""
-    
+
     claim_text: str = Field(..., min_length=1, max_length=1000)
     claim_type: ClaimType = ClaimType.TEXT
     implication_text: str | None = Field(None, max_length=1000)
     topic_ids: list[str] = Field(default_factory=list, max_length=5)
     visibility: Visibility = Visibility.PUBLIC
     evidence: list[EvidenceCreate] = Field(..., min_length=1, max_length=10)
-    
+
+    # Newsroom features (optional)
+    organization_id: str | None = None
+    is_breaking_news: bool = False
+    investigation_thread_id: str | None = None
+
     @field_validator("evidence")
     @classmethod
     def validate_evidence(cls, v: list[EvidenceCreate]) -> list[EvidenceCreate]:
@@ -59,7 +64,7 @@ class ReceiptFork(BaseSchema):
 
 class ReceiptResponse(BaseSchema, TimestampMixin):
     """Schema for receipt in responses."""
-    
+
     id: str
     author: AuthorSummary
     claim_text: str
@@ -72,6 +77,11 @@ class ReceiptResponse(BaseSchema, TimestampMixin):
     reactions: ReactionCounts = ReactionCounts()
     fork_count: int = 0
     updated_at: datetime | None = None
+
+    # Newsroom features (optional, for backward compatibility)
+    organization_id: str | None = None
+    is_breaking_news: bool = False
+    investigation_thread_id: str | None = None
 
 
 class ReceiptSummary(BaseSchema, TimestampMixin):

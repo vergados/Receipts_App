@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { ThumbsUp, ThumbsDown, Bookmark, GitFork, Image, Link as LinkIcon, Video, Quote } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Bookmark, GitFork, Image, Link as LinkIcon, Video, Quote, Zap } from 'lucide-react';
 import type { Receipt, EvidenceType } from '@/lib/types';
 import { formatRelativeTime, truncate, formatNumber } from '@/lib/utils';
 import { useReaction } from '@/lib/hooks/use-reaction';
 import { Card } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { VerifiedBadge } from '@/components/newsroom/verified-badge';
 import { cn } from '@/lib/utils';
 
 interface ReceiptCardProps {
@@ -53,6 +54,9 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
               <span className="font-medium text-sm truncate">
                 {receipt.author.display_name}
               </span>
+              {receipt.organization_name && receipt.is_verified_org && (
+                <VerifiedBadge size="sm" organizationName={receipt.organization_name} />
+              )}
               <span className="text-muted-foreground text-sm">
                 @{receipt.author.handle}
               </span>
@@ -62,12 +66,20 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
             </span>
           </div>
 
-          {receipt.parent_receipt_id && (
-            <Badge variant="secondary" className="shrink-0">
-              <GitFork className="h-3 w-3 mr-1" />
-              Counter
-            </Badge>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {receipt.is_breaking_news && (
+              <Badge variant="destructive" className="shrink-0">
+                <Zap className="h-3 w-3 mr-1" />
+                Breaking
+              </Badge>
+            )}
+            {receipt.parent_receipt_id && (
+              <Badge variant="secondary" className="shrink-0">
+                <GitFork className="h-3 w-3 mr-1" />
+                Counter
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Claim */}

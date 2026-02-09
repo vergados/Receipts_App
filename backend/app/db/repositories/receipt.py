@@ -34,7 +34,8 @@ class ReceiptRepository(BaseRepository[Receipt]):
         self,
         author_id: str,
         *,
-        skip: int = 0,
+        cursor_created_at: datetime | None = None,
+        cursor_id: str | None = None,
         limit: int = 20,
         exclude_blocked_by: str | None = None,
     ) -> Sequence[Receipt]:
@@ -49,10 +50,17 @@ class ReceiptRepository(BaseRepository[Receipt]):
                 Receipt.author_id == author_id,
                 Receipt.visibility == Visibility.PUBLIC,
             )
-            .order_by(Receipt.created_at.desc())
-            .offset(skip)
-            .limit(limit)
         )
+
+        if cursor_created_at and cursor_id:
+            query = query.where(
+                or_(
+                    Receipt.created_at < cursor_created_at,
+                    and_(Receipt.created_at == cursor_created_at, Receipt.id < cursor_id),
+                )
+            )
+
+        query = query.order_by(Receipt.created_at.desc()).limit(limit)
 
         result = self.db.execute(query)
         return result.scalars().unique().all()
@@ -60,7 +68,8 @@ class ReceiptRepository(BaseRepository[Receipt]):
     def get_feed(
         self,
         *,
-        skip: int = 0,
+        cursor_created_at: datetime | None = None,
+        cursor_id: str | None = None,
         limit: int = 20,
         exclude_user_ids: list[str] | None = None,
     ) -> Sequence[Receipt]:
@@ -77,7 +86,15 @@ class ReceiptRepository(BaseRepository[Receipt]):
         if exclude_user_ids:
             query = query.where(~Receipt.author_id.in_(exclude_user_ids))
 
-        query = query.order_by(Receipt.created_at.desc()).offset(skip).limit(limit)
+        if cursor_created_at and cursor_id:
+            query = query.where(
+                or_(
+                    Receipt.created_at < cursor_created_at,
+                    and_(Receipt.created_at == cursor_created_at, Receipt.id < cursor_id),
+                )
+            )
+
+        query = query.order_by(Receipt.created_at.desc()).limit(limit)
 
         result = self.db.execute(query)
         return result.scalars().unique().all()
@@ -86,7 +103,8 @@ class ReceiptRepository(BaseRepository[Receipt]):
         self,
         topic_id: str,
         *,
-        skip: int = 0,
+        cursor_created_at: datetime | None = None,
+        cursor_id: str | None = None,
         limit: int = 20,
     ) -> Sequence[Receipt]:
         """Get receipts by topic."""
@@ -101,10 +119,17 @@ class ReceiptRepository(BaseRepository[Receipt]):
                 receipt_topics.c.topic_id == topic_id,
                 Receipt.visibility == Visibility.PUBLIC,
             )
-            .order_by(Receipt.created_at.desc())
-            .offset(skip)
-            .limit(limit)
         )
+
+        if cursor_created_at and cursor_id:
+            query = query.where(
+                or_(
+                    Receipt.created_at < cursor_created_at,
+                    and_(Receipt.created_at == cursor_created_at, Receipt.id < cursor_id),
+                )
+            )
+
+        query = query.order_by(Receipt.created_at.desc()).limit(limit)
 
         result = self.db.execute(query)
         return result.scalars().unique().all()

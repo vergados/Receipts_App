@@ -7,16 +7,26 @@ from fastapi.staticfiles import StaticFiles
 import structlog
 import os
 
+from alembic import command
+from alembic.config import Config as AlembicConfig
+
 from app.core.config import settings
-from app.db.session import init_db, close_db
+from app.db.session import close_db
 
 logger = structlog.get_logger(__name__)
+
+
+def _run_migrations() -> None:
+    """Run Alembic migrations to bring the database to head."""
+    alembic_cfg = AlembicConfig("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting application", environment=settings.environment, version=settings.app_version)
-    init_db()
-    logger.info("Database initialized")
+    _run_migrations()
+    logger.info("Database initialized via Alembic")
     yield
     logger.info("Shutting down application")
     close_db()
@@ -30,7 +40,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# In development, allow all origins for easier testing from different devices
+# Middleware: order matters — Starlette reverses registration order.
+# Register CORS first so it wraps the outermost layer.
 cors_origins = ["*"] if settings.environment == "development" else settings.cors_origins
 
 app.add_middleware(
@@ -40,6 +51,14 @@ app.add_middleware(
     allow_methods=settings.cors_allow_methods,
     allow_headers=settings.cors_allow_headers,
 )
+
+# Request ID middleware — runs before rate limiting so request_id is available in logs
+from app.core.middleware import RequestIDMiddleware
+app.add_middleware(RequestIDMiddleware)
+
+# Rate limiting middleware
+from app.core.rate_limit import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware)
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):

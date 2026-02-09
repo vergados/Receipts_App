@@ -1,17 +1,27 @@
 """Authentication service - SYNC version."""
 
+import hashlib
+import secrets
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.security import (
     TokenPair,
     create_access_token,
     create_token_pair,
+    hash_password,
     verify_refresh_token,
 )
+from app.db.repositories.user import UserRepository
+from app.models.db.password_reset import PasswordResetToken
 from app.models.db.user import User
 from app.models.schemas.auth import AuthResponse, TokenResponse
 from app.models.schemas.user import UserCreate, UserPrivate
+from app.services.email_service import send_password_reset_email
 from app.services.user_service import UserService
 
 logger = get_logger(__name__)
@@ -25,6 +35,12 @@ class AuthServiceError(Exception):
 
 class InvalidRefreshTokenError(AuthServiceError):
     """Raised when refresh token is invalid."""
+
+    pass
+
+
+class InvalidPasswordResetTokenError(AuthServiceError):
+    """Raised when password reset token is invalid or expired."""
 
     pass
 
@@ -85,6 +101,69 @@ class AuthService:
 
         logger.info("Token refreshed", user_id=user_id)
         return access_token, expires_in
+
+    def request_password_reset(self, email: str) -> None:
+        """Request a password reset. Always returns successfully to not reveal email existence."""
+        user_repo = UserRepository(self.db)
+        user = user_repo.get_by_email(email)
+        if not user:
+            # Don't reveal whether email exists
+            return
+
+        # Invalidate any existing tokens for this user
+        self.db.execute(
+            update(PasswordResetToken)
+            .where(
+                PasswordResetToken.user_id == user.id,
+                PasswordResetToken.used_at.is_(None),
+            )
+            .values(used_at=datetime.now(timezone.utc))
+        )
+
+        # Generate token
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+
+        # Store hashed token
+        reset_token = PasswordResetToken(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=settings.reset_token_expire_hours),
+        )
+        self.db.add(reset_token)
+        self.db.commit()
+
+        # Send email with raw token
+        send_password_reset_email(user.email, raw_token)
+        logger.info("Password reset requested", user_id=user.id)
+
+    def reset_password(self, token: str, new_password: str) -> None:
+        """Reset password using a valid token."""
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+        # Find token
+        result = self.db.execute(
+            select(PasswordResetToken).where(
+                PasswordResetToken.token_hash == token_hash,
+                PasswordResetToken.used_at.is_(None),
+                PasswordResetToken.expires_at > datetime.now(timezone.utc),
+            )
+        )
+        reset_token = result.scalar_one_or_none()
+
+        if not reset_token:
+            raise InvalidPasswordResetTokenError("Invalid or expired reset token")
+
+        # Update password
+        user = self.user_service.get_by_id(reset_token.user_id)
+        if not user:
+            raise InvalidPasswordResetTokenError("User not found")
+
+        user.password_hash = hash_password(new_password)
+        reset_token.used_at = datetime.now(timezone.utc)
+        self.db.commit()
+
+        logger.info("Password reset completed", user_id=user.id)
 
     def _user_to_private(self, user: User) -> UserPrivate:
         """Convert User model to UserPrivate schema."""

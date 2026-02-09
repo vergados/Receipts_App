@@ -85,6 +85,12 @@ export function LoginForm() {
               required
             />
           </div>
+
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
         </CardContent>
         
         <CardFooter className="flex flex-col space-y-4">

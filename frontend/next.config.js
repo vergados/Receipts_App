@@ -40,6 +40,10 @@ const nextConfig = {
         source: '/api/:path*',
         destination: `${getApiUrl()}/api/:path*`,
       },
+      {
+        source: '/uploads/:path*',
+        destination: `${getApiUrl()}/uploads/:path*`,
+      },
     ];
   },
 };

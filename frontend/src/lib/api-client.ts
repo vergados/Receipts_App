@@ -3,6 +3,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'receipts_access_token';
 const REFRESH_TOKEN_KEY = 'receipts_refresh_token';
+const AUTH_STORE_KEY = 'receipts-auth'; // Zustand persist key
 
 // Detect if running in Tauri
 const isTauri = () => {
@@ -19,7 +20,7 @@ const getApiBaseUrl = (): string => {
 
   // For Tauri app, use configured URL or network IP
   if (isTauri()) {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.20:8000';
+    return process.env.NEXT_PUBLIC_API_URL || `http://${window.location.hostname}:8000`;
   }
 
   // For browser: use empty string for relative URLs
@@ -50,6 +51,12 @@ export const tokenManager = {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    // Overwrite Zustand persist with logged-out state so the persist
+    // middleware doesn't write back the in-memory isAuthenticated:true
+    localStorage.setItem(
+      AUTH_STORE_KEY,
+      JSON.stringify({ state: { user: null, isAuthenticated: false }, version: 0 })
+    );
   },
 };
 
@@ -109,6 +116,16 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
+
+    // Handle rate limiting (429)
+    if (error.response?.status === 429) {
+      const retryAfter = parseInt(error.response.headers['retry-after'] || '60', 10);
+      // Show toast notification using dynamic import to avoid circular deps
+      import('sonner').then(({ toast }) => {
+        toast.error(`Too many requests. Please wait ${retryAfter} seconds.`);
+      });
+      return Promise.reject(error);
+    }
 
     // Don't retry if it's a refresh request or already retried
     if (

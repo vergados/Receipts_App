@@ -67,10 +67,6 @@ class ExportService:
             format=data.format.value,
         )
 
-        # In a production system, this would queue a background job
-        # For v1, we'll process synchronously
-        self._process_export(export)
-
         return export
 
     def get_export(self, export_id: str) -> Export | None:
@@ -230,3 +226,23 @@ class ExportService:
 
         # Return relative path (would be full URL in production)
         return f"/exports/{filename}"
+
+
+def process_export_job(export_id: str) -> None:
+    """Background task: process an export in its own DB session.
+
+    This runs AFTER the response is sent, so the request's DB session is closed.
+    We open a new session via SessionLocal.
+    """
+    from app.db.session import SessionLocal
+
+    db = SessionLocal()
+    try:
+        service = ExportService(db)
+        export = service.repo.get_by_id(export_id)
+        if export:
+            service._process_export(export)
+        else:
+            logger.error("Export not found for background processing", export_id=export_id)
+    finally:
+        db.close()

@@ -9,6 +9,7 @@ export type TargetType = 'receipt' | 'user';
 export type ExportStatus = 'processing' | 'completed' | 'failed';
 export type ExportFormat = 'image';
 export type NotificationType = 'receipt_support' | 'receipt_dispute' | 'receipt_counter' | 'receipt_bookmark' | 'new_follower' | 'mention';
+export type OrganizationRole = 'admin' | 'editor' | 'senior_reporter' | 'reporter' | 'contributor';
 
 // User types
 export interface UserPublic {
@@ -27,6 +28,12 @@ export interface UserPrivate extends UserPublic {
   is_moderator: boolean;
   updated_at: string | null;
   last_login_at: string | null;
+  // Newsroom fields (optional for backward compatibility)
+  organization_id?: string | null;
+  organization_slug?: string | null;
+  organization_name?: string | null;
+  organization_role?: OrganizationRole | null;
+  is_verified_newsroom_member?: boolean;
 }
 
 export interface AuthorSummary {
@@ -34,6 +41,11 @@ export interface AuthorSummary {
   handle: string;
   display_name: string;
   avatar_url: string | null;
+  // Newsroom fields (optional for verified badge display)
+  organization_id?: string | null;
+  organization_name?: string | null;
+  organization_slug?: string | null;
+  is_verified_org_member?: boolean;
 }
 
 // Evidence types
@@ -78,6 +90,10 @@ export interface Receipt {
   fork_count: number;
   created_at: string;
   updated_at: string | null;
+  // Newsroom fields (optional for backward compatibility)
+  organization_id?: string | null;
+  is_breaking_news?: boolean;
+  investigation_thread_id?: string | null;
 }
 
 export interface ReceiptSummary {
@@ -97,6 +113,10 @@ export interface ReceiptCreate {
   topic_ids?: string[];
   visibility?: Visibility;
   evidence: EvidenceCreate[];
+  // Newsroom fields (optional)
+  organization_id?: string | null;
+  is_breaking_news?: boolean;
+  investigation_thread_id?: string | null;
 }
 
 export interface ReceiptFork {
@@ -278,6 +298,101 @@ export interface NotificationListResponse {
   notifications: Notification[];
   total: number;
   unread_count: number;
+}
+
+// Newsroom / Organization types
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  logo_url: string | null;
+  website_url: string | null;
+  is_verified: boolean;
+  member_count: number;
+  created_at: string;
+}
+
+export interface OrganizationCreate {
+  name: string;
+  slug: string;
+  description?: string | null;
+  logo_url?: string | null;
+  website_url?: string | null;
+}
+
+export interface OrganizationUpdate {
+  name?: string | null;
+  description?: string | null;
+  logo_url?: string | null;
+  website_url?: string | null;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  description: string | null;
+  member_count: number;
+}
+
+export interface DepartmentCreate {
+  name: string;
+  description?: string | null;
+}
+
+export interface OrganizationMember {
+  user_id: string;
+  handle: string;
+  display_name: string;
+  avatar_url: string | null;
+  role: OrganizationRole;
+  department_id: string | null;
+  department_name: string | null;
+  joined_at: string;
+}
+
+export interface MemberUpdateRole {
+  role: OrganizationRole;
+}
+
+export interface OrganizationInvite {
+  id: string;
+  email: string;
+  role: OrganizationRole;
+  department_id: string | null;
+  expires_at: string;
+  invited_by_handle: string;
+}
+
+export interface InviteCreate {
+  email: string;
+  role: OrganizationRole;
+  department_id?: string | null;
+}
+
+export interface InvestigationThread {
+  id: string;
+  organization_id: string;
+  organization_name: string;
+  organization_slug: string;
+  title: string;
+  description: string | null;
+  is_published: boolean;
+  published_at: string | null;
+  receipt_count: number;
+  created_at: string;
+  created_by_handle: string;
+}
+
+export interface InvestigationCreate {
+  organization_id: string;
+  title: string;
+  description?: string | null;
+}
+
+export interface InvestigationUpdate {
+  title?: string | null;
+  description?: string | null;
 }
 
 // Admin types

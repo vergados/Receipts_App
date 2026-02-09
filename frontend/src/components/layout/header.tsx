@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Receipt, Search, Plus, User, LogOut, Menu, X, Shield } from 'lucide-react';
+import { Receipt, Search, Plus, User, LogOut, Menu, X, Shield, Building2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
@@ -32,6 +32,7 @@ export function Header() {
     { href: '/', label: 'Home' },
     { href: '/trending', label: 'Trending' },
     { href: '/topics', label: 'Topics' },
+    { href: '/newsroom', label: 'Newsrooms' },
   ];
   
   return (
@@ -123,6 +124,16 @@ export function Header() {
                         <User className="h-4 w-4 mr-2" />
                         Profile
                       </Link>
+                      {user?.organization_id && (
+                        <Link
+                          href="/newsroom/dashboard"
+                          className="flex items-center px-2 py-2 text-sm hover:bg-accent"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <Building2 className="h-4 w-4 mr-2" />
+                          Newsroom
+                        </Link>
+                      )}
                       {user?.is_moderator && (
                         <Link
                           href="/admin"

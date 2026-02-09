@@ -4,15 +4,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Bell, ThumbsUp, ThumbsDown, Bookmark, GitFork, Check, Loader2, Trash2 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { RequireAuth } from '@/components/auth';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import type { Notification, NotificationListResponse, NotificationType } from '@/lib/types';
 import { useAuthStore } from '@/state/auth-store';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 const notificationConfig: Record<NotificationType, { icon: React.ReactNode; text: string; color: string }> = {
   receipt_support: {
@@ -118,16 +118,9 @@ function NotificationCard({ notification, onRead }: { notification: Notification
   return content;
 }
 
-export default function NotificationsPage() {
-  const router = useRouter();
+function NotificationsContent() {
   const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, router]);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['notifications', 'all'],
@@ -146,6 +139,7 @@ export default function NotificationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('Notifications marked as read');
     },
   });
 
@@ -155,6 +149,7 @@ export default function NotificationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('All notifications cleared');
     },
   });
 
@@ -171,10 +166,6 @@ export default function NotificationsPage() {
       deleteAllMutation.mutate();
     }
   };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   if (isLoading) {
     return (
@@ -262,5 +253,13 @@ export default function NotificationsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function NotificationsPage() {
+  return (
+    <RequireAuth>
+      <NotificationsContent />
+    </RequireAuth>
   );
 }

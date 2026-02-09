@@ -1,10 +1,14 @@
 """Exports API endpoints - SYNC version."""
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from app.core.dependencies import CurrentUser, DbSession
 from app.models.schemas.export import ExportCreate, ExportResponse
-from app.services.export_service import ExportService, ReceiptNotFoundError
+from app.services.export_service import (
+    ExportService,
+    ReceiptNotFoundError,
+    process_export_job,
+)
 
 router = APIRouter(tags=["exports"])
 
@@ -19,22 +23,17 @@ def create_export(
     data: ExportCreate,
     user: CurrentUser,
     db: DbSession,
+    background_tasks: BackgroundTasks,
 ) -> ExportResponse:
-    """Generate exportable receipt card."""
+    """Generate exportable receipt card.
+
+    Returns 202 immediately. The export is processed in the background.
+    Poll GET /exports/{export_id} to check status.
+    """
     service = ExportService(db)
 
     try:
         export = service.create_export(user, receipt_id, data)
-        return ExportResponse(
-            export_id=export.id,
-            status=export.status,
-            estimated_seconds=5 if export.status.value == "processing" else None,
-            download_url=export.download_url,
-            expires_at=export.expires_at,
-            format=export.format,
-            error_message=export.error_message,
-            created_at=export.created_at,
-        )
     except ReceiptNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -45,6 +44,20 @@ def create_export(
                 }
             },
         )
+
+    # Queue background processing
+    background_tasks.add_task(process_export_job, export.id)
+
+    return ExportResponse(
+        export_id=export.id,
+        status=export.status,
+        estimated_seconds=5,
+        download_url=export.download_url,
+        expires_at=export.expires_at,
+        format=export.format,
+        error_message=export.error_message,
+        created_at=export.created_at,
+    )
 
 
 @router.get("/exports/{export_id}", response_model=ExportResponse)

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Query, status
 
+from app.api.v1.feed import _decode_cursor, _encode_cursor
 from app.core.dependencies import CurrentUser, DbSession
 from app.models.schemas.base import PaginationInfo
 from app.models.schemas.receipt import ReceiptListResponse, ReceiptResponse
@@ -88,15 +89,15 @@ def get_user_receipts(
 
     receipt_service = ReceiptService(db)
 
-    # Decode cursor for pagination (simple offset-based for v1)
-    skip = 0
-    if cursor:
-        try:
-            skip = int(cursor)
-        except ValueError:
-            skip = 0
+    # Decode cursor
+    cursor_created_at, cursor_id = _decode_cursor(cursor)
 
-    receipts = receipt_service.get_by_author(user.id, skip=skip, limit=limit + 1)
+    receipts = receipt_service.get_by_author(
+        user.id,
+        cursor_created_at=cursor_created_at,
+        cursor_id=cursor_id,
+        limit=limit + 1,
+    )
 
     # Check if there are more results
     has_more = len(receipts) > limit
@@ -111,7 +112,7 @@ def get_user_receipts(
     return ReceiptListResponse(
         receipts=receipt_responses,
         pagination=PaginationInfo(
-            next_cursor=str(skip + limit) if has_more else None,
+            next_cursor=_encode_cursor(receipts[-1]) if has_more and receipts else None,
             has_more=has_more,
         ),
     )

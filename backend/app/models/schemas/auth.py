@@ -38,6 +38,17 @@ class AccessTokenResponse(BaseSchema):
 
 class AuthResponse(BaseSchema):
     """Schema for auth response with user and tokens."""
-    
+
     user: UserPrivate
     tokens: TokenResponse
+
+
+class ForgotPasswordRequest(BaseSchema):
+    """Schema for forgot password request."""
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseSchema):
+    """Schema for reset password request."""
+    token: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)

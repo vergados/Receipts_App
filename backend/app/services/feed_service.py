@@ -1,5 +1,6 @@
 """Feed service with business logic - SYNC version."""
 
+from datetime import datetime
 from typing import Sequence
 
 from sqlalchemy.orm import Session
@@ -28,7 +29,8 @@ class FeedService:
     def get_home_feed(
         self,
         user: User | None = None,
-        skip: int = 0,
+        cursor_created_at: datetime | None = None,
+        cursor_id: str | None = None,
         limit: int = 20,
     ) -> Sequence[Receipt]:
         """Get personalized home feed."""
@@ -41,7 +43,8 @@ class FeedService:
                 exclude_user_ids = blocked_ids
 
         return self.receipt_repo.get_feed(
-            skip=skip,
+            cursor_created_at=cursor_created_at,
+            cursor_id=cursor_id,
             limit=limit,
             exclude_user_ids=exclude_user_ids,
         )
@@ -57,7 +60,8 @@ class FeedService:
     def get_topic_feed(
         self,
         topic_slug: str,
-        skip: int = 0,
+        cursor_created_at: datetime | None = None,
+        cursor_id: str | None = None,
         limit: int = 20,
     ) -> tuple[Sequence[Receipt], "Topic | None"]:
         """Get receipts for a topic."""
@@ -69,7 +73,8 @@ class FeedService:
 
         receipts = self.receipt_repo.get_by_topic(
             topic.id,
-            skip=skip,
+            cursor_created_at=cursor_created_at,
+            cursor_id=cursor_id,
             limit=limit,
         )
 
