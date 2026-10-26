@@ -22,11 +22,29 @@ def _run_migrations() -> None:
     command.upgrade(alembic_cfg, "head")
 
 
+def _seed_reference_data() -> None:
+    """Make sure the default topics exist (safe to run every start)."""
+    from app.db.session import SessionLocal
+    from app.db.seed import seed_topics
+
+    session = SessionLocal()
+    try:
+        created = seed_topics(session)
+        if created:
+            logger.info("Seeded default topics", created=created)
+    except Exception as exc:
+        logger.error("Could not seed default topics", error=str(exc))
+    finally:
+        session.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting application", environment=settings.environment, version=settings.app_version)
-    _run_migrations()
-    logger.info("Database initialized via Alembic")
+    # Skip migrations for local dev - database already initialized
+    # _run_migrations()
+    _seed_reference_data()
+    logger.info("Database ready")
     yield
     logger.info("Shutting down application")
     close_db()
@@ -60,13 +78,24 @@ app.add_middleware(RequestIDMiddleware)
 from app.core.rate_limit import RateLimitMiddleware
 app.add_middleware(RateLimitMiddleware)
 
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error("Validation error", errors=exc.errors(), body=exc.body, path=request.url.path)
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body}
+    )
+
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     logger.error("Unhandled exception", error=str(exc), path=request.url.path)
     return JSONResponse(status_code=500, content={"error": {"code": "INTERNAL_ERROR", "message": "An unexpected error occurred"}})
 
-os.makedirs(settings.storage_local_path, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=settings.storage_local_path), name="uploads")
+if settings.storage_backend == "local":
+    os.makedirs(settings.storage_local_path, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=settings.storage_local_path), name="uploads")
 
 @app.get("/health")
 async def health_check():

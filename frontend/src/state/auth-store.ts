@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { UserPrivate } from '@/lib/types';
@@ -32,8 +33,7 @@ export const useAuthStore = create<AuthState>()(
 
         // Initialize organization data if user is a newsroom member
         if (user.organization_id) {
-          import('./organization-store').then(({ useOrganizationInit }) => {
-            const initOrganization = useOrganizationInit();
+          import('./organization-store').then(({ initOrganization }) => {
             initOrganization(user).catch(console.error);
           });
         }
@@ -60,27 +60,25 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Hook to check if user is authenticated on mount
+// Hook to check if user is authenticated on mount.
+// Reads the store with getState() so checkAuth is stable and the effect runs once.
 export function useAuthInit() {
-  const { setLoading, setUser, isAuthenticated, user } = useAuthStore();
-  
-  // Check if we have a token and validate it
-  const checkAuth = async () => {
+  return useCallback(async () => {
+    const { setLoading, setUser, isAuthenticated, user } = useAuthStore.getState();
     const token = tokenManager.getAccessToken();
-    
+
     if (!token) {
       setLoading(false);
       return;
     }
-    
+
     // If we have cached user data, we're probably good
     if (isAuthenticated && user) {
       setLoading(false);
 
       // Initialize organization data if user is a newsroom member
       if (user.organization_id) {
-        const { useOrganizationInit } = await import('./organization-store');
-        const initOrganization = useOrganizationInit();
+        const { initOrganization } = await import('./organization-store');
         initOrganization(user).catch(console.error);
       }
 
@@ -96,8 +94,7 @@ export function useAuthInit() {
 
       // Initialize organization data if user is a newsroom member
       if (userData.organization_id) {
-        const { useOrganizationInit } = await import('./organization-store');
-        const initOrganization = useOrganizationInit();
+        const { initOrganization } = await import('./organization-store');
         initOrganization(userData).catch(console.error);
       }
     } catch {
@@ -107,7 +104,5 @@ export function useAuthInit() {
     } finally {
       setLoading(false);
     }
-  };
-  
-  return checkAuth;
+  }, []);
 }

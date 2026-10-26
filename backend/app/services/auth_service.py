@@ -167,6 +167,32 @@ class AuthService:
 
     def _user_to_private(self, user: User) -> UserPrivate:
         """Convert User model to UserPrivate schema."""
+        # Get organization membership if exists
+        org_id = None
+        org_slug = None
+        org_name = None
+        org_role = None
+
+        # Query for active organization memberships
+        from app.models.db.organization import Organization, OrganizationMember
+        membership_result = self.db.execute(
+            select(OrganizationMember, Organization)
+            .join(Organization, OrganizationMember.organization_id == Organization.id)
+            .where(
+                OrganizationMember.user_id == user.id,
+                OrganizationMember.is_active == True
+            )
+            .limit(1)
+        )
+        membership_row = membership_result.first()
+
+        if membership_row:
+            membership, org = membership_row
+            org_id = membership.organization_id
+            org_role = membership.role
+            org_slug = org.slug
+            org_name = org.name
+
         return UserPrivate(
             id=user.id,
             email=user.email,
@@ -179,4 +205,8 @@ class AuthService:
             created_at=user.created_at,
             updated_at=user.updated_at,
             last_login_at=user.last_login_at,
+            organization_id=org_id,
+            organization_slug=org_slug,
+            organization_name=org_name,
+            organization_role=org_role,
         )

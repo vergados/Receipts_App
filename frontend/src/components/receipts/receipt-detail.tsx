@@ -7,7 +7,7 @@ import {
   Image, Link as LinkIcon, Video, Quote, ExternalLink,
   ChevronDown, ChevronUp, Check
 } from 'lucide-react';
-import type { Receipt, ReceiptChain, EvidenceItem, EvidenceType } from '@/lib/types';
+import type { Receipt, ReceiptChain, ReceiptChainNode, EvidenceItem, EvidenceType } from '@/lib/types';
 import { formatRelativeTime, formatDateTime, formatNumber, cn } from '@/lib/utils';
 import { useReaction } from '@/lib/hooks/use-reaction';
 import { Card } from '@/components/ui/card';
@@ -20,6 +20,7 @@ import { ReportModal } from '@/components/moderation/report-modal';
 interface ReceiptDetailProps {
   receipt: Receipt;
   chain?: ReceiptChain;
+  parent?: Receipt;
 }
 
 const evidenceIcons: Record<EvidenceType, React.ReactNode> = {
@@ -71,7 +72,7 @@ function EvidenceCard({ evidence }: { evidence: EvidenceItem }) {
         
         {evidence.type === 'quote' && (
           <blockquote className="border-l-4 border-primary/30 pl-4 italic text-muted-foreground">
-            "{evidence.content_uri}"
+            &ldquo;{evidence.content_uri.replace(/^["“”']+|["“”']+$/g, '')}&rdquo;
           </blockquote>
         )}
         
@@ -101,7 +102,34 @@ function EvidenceCard({ evidence }: { evidence: EvidenceItem }) {
   );
 }
 
-export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
+function CounterReceiptList({ nodes, depth = 0 }: { nodes: ReceiptChainNode[]; depth?: number }) {
+  return (
+    <div className={cn('space-y-3', depth > 0 && 'mt-3 pl-4 border-l-2 border-muted')}>
+      {nodes.map((node) => (
+        <div key={node.id}>
+          <Link href={`/receipt/${node.id}`} className="block">
+            <Card className="p-4 hover:border-primary/50 transition-colors">
+              <div className="flex items-center space-x-2 mb-2">
+                <Avatar src={node.author.avatar_url} fallback={node.author.display_name} size="sm" />
+                <span className="text-sm font-medium">{node.author.display_name}</span>
+                <span className="text-xs text-muted-foreground">@{node.author.handle}</span>
+                <span className="text-xs text-muted-foreground">· {formatRelativeTime(node.created_at)}</span>
+              </div>
+              <p className="text-sm mb-2">{node.claim_text}</p>
+              <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                <span className="flex items-center"><ThumbsUp className="h-3 w-3 mr-1" />{formatNumber(node.reactions.support)} support</span>
+                <span className="flex items-center"><ThumbsDown className="h-3 w-3 mr-1" />{formatNumber(node.reactions.dispute)} dispute</span>
+              </div>
+            </Card>
+          </Link>
+          {node.forks.length > 0 && <CounterReceiptList nodes={node.forks} depth={depth + 1} />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ReceiptDetail({ receipt, chain, parent }: ReceiptDetailProps) {
   const [showAllEvidence, setShowAllEvidence] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -203,14 +231,14 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
         </div>
         
         {/* Parent Receipt Reference */}
-        {receipt.parent_receipt_id && chain?.root && (
+        {receipt.parent_receipt_id && parent && (
           <div className="mb-4 p-3 bg-muted/50 rounded-lg">
             <p className="text-xs text-muted-foreground mb-1">Responding to:</p>
             <Link 
               href={`/receipt/${receipt.parent_receipt_id}`}
               className="text-sm text-primary hover:underline"
             >
-              {chain.root.claim_text.slice(0, 100)}...
+              {parent.claim_text.length > 100 ? `${parent.claim_text.slice(0, 100)}…` : parent.claim_text}
             </Link>
           </div>
         )}
@@ -274,34 +302,42 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
         </div>
         
         {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => toggleReaction('support')}
+              aria-label="Support"
+              title="Support: the evidence backs this up"
               className={cn(
                 hasReaction('support') && "bg-green-600 hover:bg-green-700 text-white border-green-600"
               )}
             >
               <ThumbsUp className={cn("h-4 w-4 mr-2", hasReaction('support') && "fill-current")} />
+              <span className="hidden sm:inline mr-1">Support</span>
               {formatNumber(reactions.support)}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => toggleReaction('dispute')}
+              aria-label="Dispute"
+              title="Dispute: the evidence doesn't hold up"
               className={cn(
                 hasReaction('dispute') && "bg-red-600 hover:bg-red-700 text-white border-red-600"
               )}
             >
               <ThumbsDown className={cn("h-4 w-4 mr-2", hasReaction('dispute') && "fill-current")} />
+              <span className="hidden sm:inline mr-1">Dispute</span>
               {formatNumber(reactions.dispute)}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => toggleReaction('bookmark')}
+              aria-label="Save"
+              title="Save for later"
               className={cn(
                 hasReaction('bookmark') && "bg-primary hover:bg-primary/90 text-primary-foreground border-primary"
               )}
@@ -311,14 +347,14 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
             </Button>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-1">
             <Link href={`/create?fork=${receipt.id}`}>
-              <Button variant="secondary" size="sm">
+              <Button variant="secondary" size="sm" title="Disagree? Post your own receipt with proof">
                 <GitFork className="h-4 w-4 mr-2" />
-                Counter
+                Counter with proof
               </Button>
             </Link>
-            <Button variant="ghost" size="sm" onClick={handleShare} className="relative">
+            <Button variant="ghost" size="sm" onClick={handleShare} className="relative" aria-label="Copy link" title="Copy link">
               {copied ? (
                 <>
                   <Check className="h-4 w-4 text-green-600" />
@@ -328,7 +364,7 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
                 <Share2 className="h-4 w-4" />
               )}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowReportModal(true)}>
+            <Button variant="ghost" size="sm" onClick={() => setShowReportModal(true)} aria-label="Report" title="Report">
               <Flag className="h-4 w-4" />
             </Button>
           </div>
@@ -343,13 +379,18 @@ export function ReceiptDetail({ receipt, chain }: ReceiptDetailProps) {
         targetId={receipt.id}
       />
       
-      {/* Fork Count */}
+      {/* Counter-receipts */}
       {receipt.fork_count > 0 && (
-        <div className="text-center">
-          <Badge variant="secondary" className="text-sm">
+        <div>
+          <h2 className="flex items-center text-sm font-medium mb-3">
             <GitFork className="h-4 w-4 mr-2" />
             {receipt.fork_count} counter-receipt{receipt.fork_count !== 1 ? 's' : ''}
-          </Badge>
+          </h2>
+          {chain ? (
+            <CounterReceiptList nodes={chain.forks} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          )}
         </div>
       )}
     </div>

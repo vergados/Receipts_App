@@ -344,6 +344,8 @@ class ReceiptService:
             created_at=receipt.created_at,
             updated_at=receipt.updated_at,
             organization_id=receipt.organization_id,
+            organization_name=receipt.organization.name if receipt.organization else None,
+            is_verified_org=bool(receipt.organization and receipt.organization.is_verified),
             is_breaking_news=receipt.is_breaking_news or False,
             investigation_thread_id=receipt.investigation_thread_id,
         )

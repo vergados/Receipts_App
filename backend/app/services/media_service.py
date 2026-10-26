@@ -150,6 +150,10 @@ class MediaService:
             "image/webp": ".webp",
             "video/mp4": ".mp4",
             "video/webm": ".webm",
+            "video/quicktime": ".mov",
+            "video/x-msvideo": ".avi",
+            "video/x-matroska": ".mkv",
+            "video/mpeg": ".mpeg",
         }
         return type_map.get(content_type, "")
 

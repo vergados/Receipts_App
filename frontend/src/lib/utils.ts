@@ -8,20 +8,28 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Format relative time
+// The API sends UTC times without a zone marker; without this the browser
+// reads them as local time and every timestamp is off by the UTC offset.
+export function parseDate(date: string | Date): Date {
+  if (typeof date !== 'string') return date;
+  const hasZone = /([zZ]|[+-]\d{2}:?\d{2})$/.test(date);
+  return new Date(hasZone || !date.includes('T') ? date : `${date}Z`);
+}
+
 export function formatRelativeTime(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = parseDate(date);
   return formatDistanceToNow(d, { addSuffix: true });
 }
 
 // Format absolute time
 export function formatDate(date: string | Date, formatStr = 'MMM d, yyyy'): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = parseDate(date);
   return format(d, formatStr);
 }
 
 // Format datetime with time
 export function formatDateTime(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = parseDate(date);
   return format(d, 'MMM d, yyyy h:mm a');
 }
 

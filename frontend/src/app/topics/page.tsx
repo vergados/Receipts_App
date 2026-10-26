@@ -30,6 +30,9 @@ export default function TopicsPage() {
   return (
     <div className="container mx-auto px-4 py-6 max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Topics</h1>
+      {data?.topics.length === 0 && (
+        <p className="text-center text-muted-foreground py-12">No topics yet. Check back soon.</p>
+      )}
       <div className="grid gap-4">
         {data?.topics.map((topic) => (
           <Link key={topic.id} href={`/topics/${topic.slug}`}>

@@ -9,6 +9,8 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Receipts - Proof-First Social Platform',
   description: 'Hold people accountable with evidence-backed claims',
+  // Opens full screen with its own name when added to an iPhone Home Screen
+  appleWebApp: { capable: true, title: 'Receipts', statusBarStyle: 'default' },
 };
 
 export default function RootLayout({

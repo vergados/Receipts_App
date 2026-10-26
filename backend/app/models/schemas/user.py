@@ -64,12 +64,17 @@ class UserPublic(UserBase, TimestampMixin):
 
 class UserPrivate(UserPublic):
     """Private user profile (visible to self)."""
-    
+
     email: EmailStr
     is_verified: bool = False
     is_moderator: bool = False
     updated_at: datetime | None = None
     last_login_at: datetime | None = None
+    # Newsroom/organization fields
+    organization_id: str | None = None
+    organization_slug: str | None = None
+    organization_name: str | None = None
+    organization_role: str | None = None
 
 
 class UserInDB(UserPrivate):

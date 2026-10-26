@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     max_image_size_mb: int = 50
     max_video_size_mb: int = 100
     allowed_image_types: list[str] = ["image/png", "image/jpeg", "image/gif", "image/webp"]
-    allowed_video_types: list[str] = ["video/mp4", "video/webm"]
+    allowed_video_types: list[str] = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/mpeg"]
     rate_limit_enabled: bool = True
     rate_limit_auth_per_minute: int = 60
     rate_limit_read_per_minute: int = 600

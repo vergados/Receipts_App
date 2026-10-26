@@ -73,6 +73,17 @@ def upload_file(
     file_data = file.file.read()
     size_bytes = len(file_data)
 
+    # Log upload attempt with details
+    from app.core.logging import get_logger
+    logger = get_logger(__name__)
+    logger.info(
+        "File upload attempt",
+        filename=file.filename,
+        content_type=content_type,
+        size_bytes=size_bytes,
+        user_id=user.id if user else None,
+    )
+
     try:
         result = service.create_upload_session(
             user_id=user.id,
