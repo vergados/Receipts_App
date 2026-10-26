@@ -199,6 +199,14 @@ await check('topic page lists the tagged receipt', async () => {
   await page.goto(`${BASE}/topics/politics`);
   await expectVisible(page.getByText('bike lanes'), 8000);
 }, page);
+await check('iPhone Home Screen icon and app settings', async () => {
+  const r = await page.request.get(`${BASE}/apple-icon`);
+  if (r.status() !== 200 || !(r.headers()['content-type'] || '').includes('image/png')) throw new Error('apple-icon status ' + r.status());
+  await page.goto(BASE);
+  if (await page.locator('link[rel="apple-touch-icon"]').count() !== 1) throw new Error('no apple-touch-icon link');
+  const t = await page.locator('meta[name="apple-mobile-web-app-title"]').getAttribute('content');
+  if (t !== 'Receipts') throw new Error('Home Screen title is ' + t);
+}, null);
 await check('logged-out home explains the app', async () => {
   const c = await browser.newContext();
   const p2 = await c.newPage();
