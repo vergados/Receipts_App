@@ -41,8 +41,7 @@ def _seed_reference_data() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting application", environment=settings.environment, version=settings.app_version)
-    # Skip migrations for local dev - database already initialized
-    # _run_migrations()
+    _run_migrations()
     _seed_reference_data()
     logger.info("Database ready")
     yield

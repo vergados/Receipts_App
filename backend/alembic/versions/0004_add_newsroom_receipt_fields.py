@@ -14,14 +14,25 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Databases created with init_db.py (create_all) already have these, so
+    # only add what's missing; otherwise startup fails on "duplicate column".
+    inspector = sa.inspect(op.get_bind())
+    columns = {c["name"] for c in inspector.get_columns("receipts")}
+    indexes = {i["name"] for i in inspector.get_indexes("receipts")}
+
     # Simple column additions for SQLite compatibility (no foreign keys in ALTER)
-    op.add_column("receipts", sa.Column("organization_id", sa.String(36), nullable=True))
-    op.add_column("receipts", sa.Column("is_breaking_news", sa.Boolean, nullable=True, default=False))
-    op.add_column("receipts", sa.Column("investigation_thread_id", sa.String(36), nullable=True))
+    if "organization_id" not in columns:
+        op.add_column("receipts", sa.Column("organization_id", sa.String(36), nullable=True))
+    if "is_breaking_news" not in columns:
+        op.add_column("receipts", sa.Column("is_breaking_news", sa.Boolean, nullable=True, default=False))
+    if "investigation_thread_id" not in columns:
+        op.add_column("receipts", sa.Column("investigation_thread_id", sa.String(36), nullable=True))
 
     # Create indexes
-    op.create_index("ix_receipts_organization_id", "receipts", ["organization_id"])
-    op.create_index("ix_receipts_investigation_thread_id", "receipts", ["investigation_thread_id"])
+    if "ix_receipts_organization_id" not in indexes:
+        op.create_index("ix_receipts_organization_id", "receipts", ["organization_id"])
+    if "ix_receipts_investigation_thread_id" not in indexes:
+        op.create_index("ix_receipts_investigation_thread_id", "receipts", ["investigation_thread_id"])
 
 
 def downgrade() -> None:
