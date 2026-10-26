@@ -92,6 +92,8 @@ export interface Receipt {
   updated_at: string | null;
   // Newsroom fields (optional for backward compatibility)
   organization_id?: string | null;
+  organization_name?: string | null;
+  is_verified_org?: boolean;
   is_breaking_news?: boolean;
   investigation_thread_id?: string | null;
 }

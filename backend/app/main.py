@@ -22,11 +22,28 @@ def _run_migrations() -> None:
     command.upgrade(alembic_cfg, "head")
 
 
+def _seed_reference_data() -> None:
+    """Make sure the default topics exist (safe to run every start)."""
+    from app.db.session import SessionLocal
+    from app.db.seed import seed_topics
+
+    session = SessionLocal()
+    try:
+        created = seed_topics(session)
+        if created:
+            logger.info("Seeded default topics", created=created)
+    except Exception as exc:
+        logger.error("Could not seed default topics", error=str(exc))
+    finally:
+        session.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting application", environment=settings.environment, version=settings.app_version)
     # Skip migrations for local dev - database already initialized
     # _run_migrations()
+    _seed_reference_data()
     logger.info("Database ready")
     yield
     logger.info("Shutting down application")

@@ -45,14 +45,15 @@ export function VerifiedBadge({
   }
 
   return (
-    <CheckCircle2
-      className={cn(
-        sizeClasses[size],
-        'text-blue-600 dark:text-blue-400 fill-current',
-        className
-      )}
-      title={organizationName ? `Verified member of ${organizationName}` : 'Verified'}
-      aria-label="Verified"
-    />
+    <span title={organizationName ? `Verified member of ${organizationName}` : 'Verified'}>
+      <CheckCircle2
+        className={cn(
+          sizeClasses[size],
+          'text-blue-600 dark:text-blue-400 fill-current',
+          className
+        )}
+        aria-label="Verified"
+      />
+    </span>
   );
 }

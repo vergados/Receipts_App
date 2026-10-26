@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ThumbsUp, ThumbsDown, Bookmark, GitFork, Image, Link as LinkIcon, Video, Quote, Zap } from 'lucide-react';
 import type { Receipt, EvidenceType } from '@/lib/types';
 import { formatRelativeTime, truncate, formatNumber } from '@/lib/utils';
@@ -32,6 +33,15 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
     receiptId: receipt.id,
     initialReactions: receipt.reactions,
   });
+
+  const router = useRouter();
+
+  // The whole card is a link, so this is a button (a link can't sit inside a link)
+  const handleCounter = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/create?fork=${receipt.id}`);
+  };
 
   const handleReaction = (e: React.MouseEvent, type: 'support' | 'dispute' | 'bookmark') => {
     e.preventDefault();
@@ -119,6 +129,8 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
           <div className="flex items-center space-x-4">
             <button
               onClick={(e) => handleReaction(e, 'support')}
+              aria-label={`Support (${reactions.support})`}
+              title="Support"
               className={cn(
                 "flex items-center space-x-1 transition-colors",
                 hasReaction('support')
@@ -131,6 +143,8 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
             </button>
             <button
               onClick={(e) => handleReaction(e, 'dispute')}
+              aria-label={`Dispute (${reactions.dispute})`}
+              title="Dispute"
               className={cn(
                 "flex items-center space-x-1 transition-colors",
                 hasReaction('dispute')
@@ -141,17 +155,21 @@ export function ReceiptCard({ receipt, showFullClaim = false }: ReceiptCardProps
               <ThumbsDown className={cn("h-4 w-4", hasReaction('dispute') && "fill-current")} />
               <span className="text-xs">{formatNumber(reactions.dispute)}</span>
             </button>
-            <Link
-              href={`/create?fork=${receipt.id}`}
-              onClick={(e) => e.stopPropagation()}
+            <button
+              type="button"
+              onClick={handleCounter}
+              aria-label={`Counter with proof (${receipt.fork_count} so far)`}
+              title="Counter with proof"
               className="flex items-center space-x-1 text-muted-foreground hover:text-primary transition-colors"
             >
               <GitFork className="h-4 w-4" />
               <span className="text-xs">{formatNumber(receipt.fork_count)}</span>
-            </Link>
+            </button>
           </div>
           <button
             onClick={(e) => handleReaction(e, 'bookmark')}
+            aria-label="Save"
+            title="Save for later"
             className={cn(
               "transition-colors",
               hasReaction('bookmark')

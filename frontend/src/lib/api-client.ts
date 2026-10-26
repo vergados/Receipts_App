@@ -197,8 +197,23 @@ export interface ApiError {
 // Helper to extract error message
 export const getErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
-    const apiError = error.response?.data as ApiError | undefined;
-    return apiError?.error?.message || error.message;
+    if (!error.response) {
+      return "Can't reach the server. Check your connection and try again.";
+    }
+    const apiError = error.response.data as ApiError | undefined;
+    if (apiError?.error?.message) return apiError.error.message;
+    // FastAPI validation errors: { detail: [{ loc, msg }] }
+    const detail = (error.response.data as any)?.detail;
+    if (Array.isArray(detail) && detail.length > 0) {
+      const first = detail[0];
+      const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : undefined;
+      const msg = String(first?.msg ?? '').replace(/^Value error, /, '');
+      return field && typeof field === 'string' ? `${field.replace(/_/g, ' ')}: ${msg}` : msg;
+    }
+    if (error.response.status >= 500) {
+      return 'Something went wrong on our side. Please try again.';
+    }
+    return 'Something went wrong. Please check what you entered and try again.';
   }
   if (error instanceof Error) {
     return error.message;

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   cn,
+  parseDate,
   truncate,
   pluralize,
   formatNumber,
@@ -127,5 +128,16 @@ describe('cursor helpers', () => {
 
   it('cursorToSkip returns 0 for invalid string', () => {
     expect(cursorToSkip('not-a-number')).toBe(0);
+  });
+});
+
+describe('parseDate', () => {
+  it('treats API times without a zone as UTC', () => {
+    expect(parseDate('2026-10-26T04:47:00').toISOString()).toBe('2026-10-26T04:47:00.000Z');
+  });
+
+  it('keeps times that already have a zone', () => {
+    expect(parseDate('2026-10-26T04:47:00Z').toISOString()).toBe('2026-10-26T04:47:00.000Z');
+    expect(parseDate('2026-10-26T04:47:00+02:00').toISOString()).toBe('2026-10-26T02:47:00.000Z');
   });
 });

@@ -80,6 +80,8 @@ class ReceiptResponse(BaseSchema, TimestampMixin):
 
     # Newsroom features (optional, for backward compatibility)
     organization_id: str | None = None
+    organization_name: str | None = None
+    is_verified_org: bool = False
     is_breaking_news: bool = False
     investigation_thread_id: str | None = None
 

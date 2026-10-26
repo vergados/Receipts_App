@@ -504,36 +504,33 @@ export const useOrganizationStore = create<OrganizationState>()(
   )
 );
 
-// Hook to initialize organization data when user is authenticated
-export function useOrganizationInit() {
-  const { loadOrganizationList, setCurrentOrganization } = useOrganizationStore();
+// Initialize organization data when user is authenticated.
+// Plain function (not a hook) so it can run from store actions and async code
+export async function initOrganization(user: any) {
+  const { loadOrganizationList, setCurrentOrganization } = useOrganizationStore.getState();
 
-  const initOrganization = async (user: any) => {
-    // If user has an organization, set it as current
-    if (user?.organization_id && user?.organization_slug && user?.organization_name) {
-      setCurrentOrganization({
-        id: user.organization_id,
-        slug: user.organization_slug,
-        name: user.organization_name,
-        description: null,
-        logo_url: null,
-        website_url: null,
-        is_verified: user.is_verified_newsroom_member || false,
-        member_count: 0,
-        created_at: new Date().toISOString(),
-      });
-    }
+  // If user has an organization, set it as current
+  if (user?.organization_id && user?.organization_slug && user?.organization_name) {
+    setCurrentOrganization({
+      id: user.organization_id,
+      slug: user.organization_slug,
+      name: user.organization_name,
+      description: null,
+      logo_url: null,
+      website_url: null,
+      is_verified: user.is_verified_newsroom_member || false,
+      member_count: 0,
+      created_at: new Date().toISOString(),
+    });
+  }
 
-    // Load organization directory (cached)
-    try {
-      await loadOrganizationList();
-    } catch (error) {
-      // Fail silently - not critical for app initialization
-      console.error('Failed to load organization directory:', error);
-    }
-  };
-
-  return initOrganization;
+  // Load organization directory (cached)
+  try {
+    await loadOrganizationList();
+  } catch (error) {
+    // Fail silently - not critical for app initialization
+    console.error('Failed to load organization directory:', error);
+  }
 }
 
 // Selector hooks for common use cases

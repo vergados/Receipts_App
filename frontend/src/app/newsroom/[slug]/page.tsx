@@ -49,7 +49,7 @@ export default function OrganizationProfilePage() {
     loadOrg();
   }, [slug]);
 
-  const isAdmin = user && currentOrg?.id === organization?.id && user.organization_role === 'admin';
+  const isAdmin = !!user && currentOrg?.id === organization?.id && user.organization_role === 'admin';
 
   if (isLoading) {
     return (
