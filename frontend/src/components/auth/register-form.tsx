@@ -26,7 +26,7 @@ export function RegisterForm() {
 
   const registerMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post<AuthResponse>('/auth/register', {
+      const response = await apiClient.post<AuthResponse>('/api/v1/auth/register', {
         email: formData.email,
         password: formData.password,
         handle: formData.handle,

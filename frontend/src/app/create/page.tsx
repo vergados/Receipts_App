@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useState, useRef } from 'react';
+import { Suspense, useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { X, Image, Link as LinkIcon, Video, Quote, Upload, Loader2 } from 'lucide-react';
+import { X, Image, Link as LinkIcon, Video, Quote, Upload, Loader2, Building2 } from 'lucide-react';
 import { Button, Input, Textarea, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { RequireAuth } from '@/components/auth';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/state/auth-store';
 import type { EvidenceCreate, EvidenceType } from '@/lib/types';
 
 const evidenceIcons = { image: Image, link: LinkIcon, video: Video, quote: Quote };
@@ -25,7 +26,8 @@ function CreatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const forkId = searchParams.get('fork');
-  
+  const { user } = useAuthStore();
+
   const [claim, setClaim] = useState('');
   const [implication, setImplication] = useState('');
   const [evidence, setEvidence] = useState<EvidenceCreate[]>([]);
@@ -33,6 +35,22 @@ function CreatePageContent() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<number | null>(null);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  // Newsroom fields
+  const [isBreakingNews, setIsBreakingNews] = useState(false);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+
+  const isNewsroomMember = !!user?.organization_id;
+
+  // Load departments if user is a newsroom member
+  useEffect(() => {
+    if (isNewsroomMember && user?.organization_id) {
+      apiClient.get(`/api/v1/organizations/${user.organization_id}/departments`)
+        .then(res => setDepartments(res.data))
+        .catch(err => console.error('Failed to load departments:', err));
+    }
+  }, [isNewsroomMember, user?.organization_id]);
 
   const addEvidence = (type: EvidenceType) => {
     setEvidence([...evidence, { type, content_uri: '', caption: '' }]);
@@ -76,11 +94,22 @@ function CreatePageContent() {
 
     try {
       const endpoint = forkId ? `/receipts/${forkId}/fork` : '/receipts';
-      const res = await apiClient.post(endpoint, {
+      const payload: any = {
         claim_text: claim,
         implication_text: implication || undefined,
         evidence: evidence.filter(e => e.content_uri),
-      });
+      };
+
+      // Add newsroom fields if user is a newsroom member
+      if (isNewsroomMember && user?.organization_id) {
+        payload.organization_id = user.organization_id;
+        payload.is_breaking_news = isBreakingNews;
+        if (selectedDepartment) {
+          payload.department_id = selectedDepartment;
+        }
+      }
+
+      const res = await apiClient.post(endpoint, payload);
       toast.success('Receipt posted successfully');
       router.push(`/receipt/${res.data.id}`);
     } catch (err) {
@@ -113,6 +142,47 @@ function CreatePageContent() {
               value={implication}
               onChange={(e) => setImplication(e.target.value)}
             />
+
+            {isNewsroomMember && (
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">{user?.organization_name}</p>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Breaking News Toggle */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isBreakingNews}
+                      onChange={(e) => setIsBreakingNews(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <span className="text-sm">Mark as Breaking News</span>
+                  </label>
+
+                  {/* Department Selector */}
+                  {departments.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Department (optional)</label>
+                      <select
+                        value={selectedDepartment}
+                        onChange={(e) => setSelectedDepartment(e.target.value)}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">None</option>
+                        {departments.map((dept: any) => (
+                          <option key={dept.id} value={dept.id}>
+                            {dept.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div>
               <p className="text-sm font-medium mb-2">Evidence ({evidence.length})</p>

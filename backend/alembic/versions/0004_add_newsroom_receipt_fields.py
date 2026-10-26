@@ -14,21 +14,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add newsroom-related fields to receipts (all nullable for backward compatibility)
-    op.add_column(
-        "receipts",
-        sa.Column("organization_id", sa.String(36), sa.ForeignKey("organizations.id"), nullable=True)
-    )
-    op.add_column(
-        "receipts",
-        sa.Column("is_breaking_news", sa.Boolean, nullable=True, default=False)
-    )
-    op.add_column(
-        "receipts",
-        sa.Column("investigation_thread_id", sa.String(36), sa.ForeignKey("investigation_threads.id"), nullable=True)
-    )
+    # Simple column additions for SQLite compatibility (no foreign keys in ALTER)
+    op.add_column("receipts", sa.Column("organization_id", sa.String(36), nullable=True))
+    op.add_column("receipts", sa.Column("is_breaking_news", sa.Boolean, nullable=True, default=False))
+    op.add_column("receipts", sa.Column("investigation_thread_id", sa.String(36), nullable=True))
 
-    # Create indexes for performance
+    # Create indexes
     op.create_index("ix_receipts_organization_id", "receipts", ["organization_id"])
     op.create_index("ix_receipts_investigation_thread_id", "receipts", ["investigation_thread_id"])
 
