@@ -24,34 +24,40 @@ export default function OrganizationProfilePage() {
     loadSelectedOrgDepartments,
     selectedOrgMembers,
     selectedOrgDepartments,
-    isLoading,
     isLoadingMembers,
     isLoadingDepartments,
-    error,
   } = useOrganizationStore();
 
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [notFound, setNotFound] = useState(false);
+
+  // The member list is private to the newsroom; only its own members can load it
+  const isMember = !!user && !!organization && user.organization_id === organization.id;
 
   useEffect(() => {
     const loadOrg = async () => {
       try {
+        setNotFound(false);
         const org = await getOrganization(slug);
         setOrganization(org);
-
-        // Load members and departments
-        loadSelectedOrgMembers(org.id);
-        loadSelectedOrgDepartments(org.id);
+        loadSelectedOrgDepartments(org.id).catch(() => {});
       } catch (err) {
-        // Error handled by store
+        setNotFound(true);
       }
     };
 
     loadOrg();
   }, [slug]);
 
+  useEffect(() => {
+    if (isMember && organization) {
+      loadSelectedOrgMembers(organization.id).catch(() => {});
+    }
+  }, [isMember, organization?.id]);
+
   const isAdmin = !!user && currentOrg?.id === organization?.id && user.organization_role === 'admin';
 
-  if (isLoading) {
+  if (!organization && !notFound) {
     return (
       <div className="flex justify-center py-12">
         <Spinner size="lg" />
@@ -59,7 +65,7 @@ export default function OrganizationProfilePage() {
     );
   }
 
-  if (error || !organization) {
+  if (notFound || !organization) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
         <h2 className="text-2xl font-bold mb-4">Organization Not Found</h2>
@@ -146,7 +152,12 @@ export default function OrganizationProfilePage() {
                 <h3 className="font-semibold">Team</h3>
               </div>
 
-              {isLoadingMembers ? (
+              {!isMember ? (
+                <div className="text-sm text-muted-foreground">
+                  {organization.member_count}{' '}
+                  {organization.member_count === 1 ? 'member' : 'members'}
+                </div>
+              ) : isLoadingMembers ? (
                 <Spinner size="sm" />
               ) : (
                 <div className="space-y-3">
